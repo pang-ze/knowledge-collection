@@ -153,6 +153,8 @@ function enhanceContent(root = document) {
     link.rel = "noopener noreferrer";
   });
   root.querySelectorAll("img").forEach((image) => {
+    const source = image.getAttribute("src") || "";
+    if (source.startsWith("../Assets/images/")) image.src = new URL(`./${source.slice(3)}`, document.baseURI).href;
     image.loading = "lazy";
     image.decoding = "async";
   });
