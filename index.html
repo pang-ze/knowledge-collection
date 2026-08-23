@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QA Knowledge Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.18.1/dist/katex.min.css" integrity="sha384-1vdNCNel6Tx/NQa8IR1mGOGKsbGreCkOPfbtPPnUURJ5Tu2PRVfQ/7KLZC+Pi1p1" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.12.0/styles/github-dark.min.css" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.18.1/dist/katex.min.js" integrity="sha384-ycJ6GAwiS15LoUPipwJOrWTvkUHl/YqELValBwI5I4awP1EeEQJYarj+w85ntcz7" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/marked@18.0.7/lib/marked.umd.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/dompurify@3.4.7/dist/purify.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.12.0/highlight.min.js"></script>
+    <script defer src="./index-data.js"></script>
+    <script defer src="./app.js"></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">QA KNOWLEDGE BASE</p>
+          <h1>Learn by asking better questions.</h1>
+          <p class="subtitle">Browse the collection, filter by topic, and reveal answers when you are ready.</p>
+        </div>
+        <div class="metric"><strong id="record-count">0</strong><span>QA records</span></div>
+      </header>
+
+      <section class="panel" aria-labelledby="topics-heading">
+        <div class="section-heading">
+          <div><p class="eyebrow">TAXONOMY</p><h2 id="topics-heading">Filter the knowledge base</h2></div>
+          <button id="clear-filter" class="text-button" type="button">Clear filters</button>
+        </div>
+        <label class="search-field">
+          <span>Search by key, Chinese name, English name, or alias</span>
+          <input id="tag-search" type="search" placeholder="Try LLM, 大模型, or Large Language Model…" autocomplete="off" />
+        </label>
+        <div class="taxonomy-filters">
+          <div class="taxonomy-row"><div class="taxonomy-label"><strong>Domains</strong><span>Fields</span></div><div id="domain-filter" class="taxonomy-options"></div></div>
+          <div class="taxonomy-row"><div class="taxonomy-label"><strong>Concepts</strong><span>Methods</span></div><div id="concept-filter" class="taxonomy-options"></div></div>
+          <div class="taxonomy-row"><div class="taxonomy-label"><strong>Technologies</strong><span>Tools</span></div><div id="technology-filter" class="taxonomy-options"></div></div>
+        </div>
+        <div class="subsection-heading"><div><p class="eyebrow">DIRECT TAGS</p><h3>Dataset distribution</h3></div><span id="filter-summary" class="filter-summary"></span></div>
+        <div id="tag-chart" class="tag-chart" aria-label="Tag frequency chart"></div>
+        <button id="toggle-chart" class="text-button chart-toggle" type="button"></button>
+      </section>
+
+      <section class="panel" aria-labelledby="questions-heading">
+        <div class="section-heading"><div><p class="eyebrow">QUESTIONS</p><h2 id="questions-heading">Your QA library</h2></div><span id="active-filter" class="active-filter">All topics</span></div>
+        <div id="qa-list" class="qa-list"></div>
+      </section>
+    </main>
+  </body>
+</html>
