@@ -2,11 +2,15 @@ const knowledge = window.QA_KNOWLEDGE_DATA;
 const qaData = knowledge.index.records;
 const taxonomy = knowledge.taxonomy.tags;
 const PAGE_SIZE = 10;
+const TAG_PREVIEW_LIMIT = 10;
 const dimensions = ["domains", "concepts", "technologies"];
+const dimensionByType = { domain: "domains", concept: "concepts", technology: "technologies" };
+const parameterByDimension = { domains: "domain", concepts: "concept", technologies: "technology" };
 const ANSWER_API_BASE = "https://learning-notes-api.pang-ze.workers.dev";
 const answerCache = new Map();
 const answerPromises = new Map();
 const selected = Object.fromEntries(dimensions.map((dimension) => [dimension, new Set()]));
+const expandedDimensions = new Set();
 let tagQuery = "";
 let currentPage = 1;
 let renderVersion = 0;
@@ -63,7 +67,12 @@ function availableTags(dimension) {
   }, new Map());
   selected[dimension].forEach((key) => { if (!counts.has(key)) counts.set(key, 0); });
   const query = tagQuery.trim().toLocaleLowerCase();
-  return [...counts].filter(([key, count]) => (count > 0 || selected[dimension].has(key)) && (!query || searchText(key).includes(query))).sort(([a], [b]) => displayName(a).localeCompare(displayName(b)));
+  const candidates = query
+    ? Object.keys(taxonomy).filter((key) => dimensionByType[taxonomy[key].instance_of] === dimension).map((key) => [key, counts.get(key) || 0])
+    : [...counts];
+  return candidates
+    .filter(([key, count]) => (query ? searchText(key).includes(query) : count > 0 || selected[dimension].has(key)))
+    .sort(([a, countA], [b, countB]) => Number(selected[dimension].has(b)) - Number(selected[dimension].has(a)) || countB - countA || displayName(a).localeCompare(displayName(b)));
 }
 
 function filteredRecords() {
@@ -74,11 +83,14 @@ function renderFilters() {
   const ids = { domains: "domain-filter", concepts: "concept-filter", technologies: "technology-filter" };
   for (const dimension of dimensions) {
     const tags = availableTags(dimension);
-    byId(ids[dimension]).innerHTML = tags.length ? tags.map(([key, count]) => {
+    const visibleTags = tagQuery || expandedDimensions.has(dimension) ? tags : tags.slice(0, TAG_PREVIEW_LIMIT);
+    const tagMarkup = visibleTags.map(([key, count]) => {
       const tag = taxonomy[key];
       const alternate = [tag.name_zh, tag.name_en].filter((name) => name && name !== displayName(key)).join(" · ");
       return `<button class="tag-button ${selected[dimension].has(key) ? "selected" : ""}" data-dimension="${dimension}" data-key="${escapeHtml(key)}" type="button" title="${escapeHtml(alternate)}"><span>${escapeHtml(displayName(key))}</span><strong>${count}</strong></button>`;
-    }).join("") : `<span class="no-match">No matching ${dimension}</span>`;
+    }).join("");
+    const expandMarkup = !tagQuery && tags.length > TAG_PREVIEW_LIMIT ? `<button class="tag-expand text-button" data-expand="${dimension}" type="button">${expandedDimensions.has(dimension) ? "Collapse" : `Show all ${tags.length}`}</button>` : "";
+    byId(ids[dimension]).innerHTML = tags.length ? tagMarkup + expandMarkup : `<span class="no-match">No matching ${dimension}</span>`;
   }
   document.querySelectorAll(".tag-button[data-dimension]").forEach((button) => button.addEventListener("click", () => {
     const values = selected[button.dataset.dimension];
@@ -86,14 +98,10 @@ function renderFilters() {
     currentPage = 1;
     render();
   }));
-}
-
-function renderQuestion(markdown) {
-  if (!window.marked || !window.DOMPurify) return escapeHtml(markdown);
-  return window.DOMPurify.sanitize(window.marked.parseInline(markdown), {
-    ALLOWED_TAGS: ["strong", "em", "del", "span"],
-    ALLOWED_ATTR: ["class"]
-  });
+  document.querySelectorAll(".tag-expand").forEach((button) => button.addEventListener("click", () => {
+    expandedDimensions.has(button.dataset.expand) ? expandedDimensions.delete(button.dataset.expand) : expandedDimensions.add(button.dataset.expand);
+    renderFilters();
+  }));
 }
 
 function renderMarkdown(markdown) {
@@ -138,7 +146,7 @@ async function copyCode(text, button) {
   setTimeout(() => { button.textContent = "Copy"; }, 1400);
 }
 
-function enhanceAnswers(root = document) {
+function enhanceContent(root = document) {
   renderMath(root);
   root.querySelectorAll("a").forEach((link) => {
     link.target = "_blank";
@@ -151,12 +159,13 @@ function enhanceAnswers(root = document) {
   root.querySelectorAll("pre code").forEach((code) => {
     if (window.hljs) window.hljs.highlightElement(code);
     const pre = code.parentElement;
+    if (pre.querySelector(":scope > .code-copy")) return;
     const button = document.createElement("button");
     button.className = "code-copy";
     button.type = "button";
     button.textContent = "Copy";
     button.setAttribute("aria-label", "Copy code block");
-    button.addEventListener("click", () => copyCode(code.textContent, button));
+    button.addEventListener("click", (event) => { event.stopPropagation(); copyCode(code.textContent, button); });
     pre.append(button);
   });
 }
@@ -167,16 +176,21 @@ function referenceLabel(reference) {
 }
 
 function renderResources(item) {
-  const related = item.related_qa.length ? `<section class="qa-resources"><h3>Related QA</h3><ul>${item.related_qa.map((relation) => `<li><a href="${escapeHtml(relation.url)}" target="_blank" rel="noopener noreferrer">${renderQuestion(relation.question)} <span aria-hidden="true">↗</span></a></li>`).join("")}</ul></section>` : "";
+  const related = item.related_qa.length ? `<section class="qa-resources"><h3>Related QA</h3><ul>${item.related_qa.map((relation) => `<li><div class="related-link" role="link" tabindex="0" data-url="${escapeHtml(relation.url)}"><div class="related-question markdown-content">${renderMarkdown(relation.question)}</div><span aria-hidden="true">↗</span></div></li>`).join("")}</ul></section>` : "";
   const references = item.references.length ? `<section class="qa-resources"><h3>References</h3><ul>${item.references.map((reference) => `<li><a href="${escapeHtml(reference.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(referenceLabel(reference))} <span aria-hidden="true">↗</span></a></li>`).join("")}</ul></section>` : "";
   return related + references;
+}
+
+function tagFilterUrl(key) {
+  const dimension = dimensionByType[taxonomy[key].instance_of];
+  return `?${parameterByDimension[dimension]}=${encodeURIComponent(key)}`;
 }
 
 async function loadAnswer(card, item) {
   const content = card.querySelector(".answer-content");
   if (answerCache.has(item.id)) {
     content.innerHTML = renderMarkdown(answerCache.get(item.id));
-    enhanceAnswers(content);
+    enhanceContent(content);
     return;
   }
   content.innerHTML = `<p class="answer-status">Loading answer…</p>`;
@@ -184,7 +198,7 @@ async function loadAnswer(card, item) {
     if (answerPromises.has(item.id)) await answerPromises.get(item.id);
     if (answerCache.has(item.id)) {
       content.innerHTML = renderMarkdown(answerCache.get(item.id));
-      enhanceAnswers(content);
+      enhanceContent(content);
       return;
     }
     const response = await fetchWithTimeout(`${ANSWER_API_BASE}/api/answers/${encodeURIComponent(item.id)}`);
@@ -192,7 +206,7 @@ async function loadAnswer(card, item) {
     const payload = await response.json();
     answerCache.set(item.id, payload.answer_markdown);
     content.innerHTML = renderMarkdown(payload.answer_markdown);
-    enhanceAnswers(content);
+    enhanceContent(content);
   } catch (error) {
     content.innerHTML = `<p class="answer-status">Answer could not be loaded. Close and reopen to retry.</p>`;
     console.error(`Failed to load answer ${item.id}:`, error);
@@ -225,14 +239,25 @@ async function preloadAnswers(records) {
 function renderQuestions(records, totalRecords, disabled = true) {
   const active = dimensions.flatMap((dimension) => [...selected[dimension]]);
   byId("active-filter").textContent = active.length ? `${totalRecords} records · ${active.map(displayName).join(", ")}` : `All topics · ${totalRecords}`;
-  byId("qa-list").innerHTML = records.length ? records.map((item) => `<article class="qa-card" data-id="${escapeHtml(item.id)}"><button class="question" type="button" aria-expanded="false" ${disabled ? "disabled" : ""}><span class="question-text">${renderQuestion(item.question)}</span><span class="question-toggle" aria-hidden="true">+</span></button><div class="answer"><div class="answer-content"></div>${renderResources(item)}<div class="meta">${item.direct_tags.map((tag) => `<span class="tag">${escapeHtml(displayName(tag))}</span>`).join("")}<span class="tag">${escapeHtml(item.answered_by)}</span></div></div></article>`).join("") : `<p class="empty">No questions match these filters.</p>`;
-  document.querySelectorAll(".question").forEach((button) => button.addEventListener("click", () => {
-    const card = button.parentElement;
+  byId("qa-list").innerHTML = records.length ? records.map((item) => `<article class="qa-card" data-id="${escapeHtml(item.id)}"><div class="question ${disabled ? "disabled" : ""}" role="button" tabindex="${disabled ? "-1" : "0"}" aria-expanded="false" aria-disabled="${disabled}"><div class="question-content markdown-content">${renderMarkdown(item.question)}</div><span class="question-toggle" aria-hidden="true">+</span></div><div class="answer"><div class="answer-content markdown-content"></div>${renderResources(item)}<div class="meta">${item.direct_tags.map((tag) => `<a class="tag" href="${tagFilterUrl(tag)}" target="_blank" rel="noopener noreferrer">${escapeHtml(displayName(tag))} ↗</a>`).join("")}<span class="tag">${escapeHtml(item.answered_by)}</span></div></div></article>`).join("") : `<p class="empty">No questions match these filters.</p>`;
+  document.querySelectorAll(".question").forEach((button) => {
+    const toggle = (event) => {
+      if (button.classList.contains("disabled") || event.target.closest("a, .code-copy")) return;
+      const card = button.parentElement;
     const open = card.classList.toggle("open");
     button.setAttribute("aria-expanded", String(open));
     button.querySelector(".question-toggle").textContent = open ? "−" : "+";
     if (open) loadAnswer(card, records.find((item) => item.id === card.dataset.id));
-  }));
+    };
+    button.addEventListener("click", toggle);
+    button.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); toggle(event); } });
+  });
+  document.querySelectorAll(".related-link").forEach((link) => {
+    const open = () => window.open(link.dataset.url, "_blank", "noopener,noreferrer");
+    link.addEventListener("click", (event) => { if (!event.target.closest("a, .code-copy")) open(); });
+    link.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); } });
+  });
+  document.querySelectorAll(".question-content, .related-question").forEach((content) => enhanceContent(content));
 }
 
 function renderPagination(totalRecords) {
@@ -260,7 +285,7 @@ async function render() {
   byId("page-status").innerHTML = pageRecords.length ? `<span class="loading-dot" aria-hidden="true"></span> Loading page ${currentPage} answers…` : "";
   const ready = await preloadAnswers(pageRecords);
   if (version !== renderVersion) return;
-  document.querySelectorAll(".question").forEach((button) => { button.disabled = false; });
+  document.querySelectorAll(".question").forEach((button) => { button.classList.remove("disabled"); button.tabIndex = 0; button.setAttribute("aria-disabled", "false"); });
   if (ready) byId("page-status").textContent = "";
   else {
     byId("page-status").innerHTML = `Page answers could not be preloaded. Questions will retry individually. <button id="retry-page" class="text-button" type="button">Retry</button>`;
@@ -285,9 +310,14 @@ byId("clear-filter").addEventListener("click", () => {
   byId("tag-search").value = "";
   render();
 });
-const requestedQa = new URLSearchParams(window.location.search).get("qa");
+const urlParameters = new URLSearchParams(window.location.search);
+for (const [dimension, parameter] of Object.entries(parameterByDimension)) {
+  const key = urlParameters.get(parameter);
+  if (key && taxonomy[key] && dimensionByType[taxonomy[key].instance_of] === dimension) selected[dimension].add(key);
+}
+const requestedQa = urlParameters.get("qa");
 if (requestedQa) {
-  const requestedIndex = qaData.findIndex((record) => record.id === requestedQa);
+  const requestedIndex = filteredRecords().findIndex((record) => record.id === requestedQa);
   if (requestedIndex >= 0) currentPage = Math.floor(requestedIndex / PAGE_SIZE) + 1;
 }
 render();
