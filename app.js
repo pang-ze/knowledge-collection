@@ -2,12 +2,15 @@ const knowledge = window.QA_KNOWLEDGE_DATA;
 const qaData = knowledge.index.records;
 const taxonomy = knowledge.taxonomy.tags;
 const CHART_LIMIT = 8;
+const PAGE_SIZE = 10;
 const dimensions = ["domains", "concepts", "technologies"];
 const ANSWER_API_BASE = "https://learning-notes-api.pang-ze.workers.dev";
 const answerCache = new Map();
+const answerPromises = new Map();
 const selected = Object.fromEntries(dimensions.map((dimension) => [dimension, new Set()]));
 let tagQuery = "";
 let showAllChartTags = false;
+let currentPage = 1;
 
 const byId = (id) => document.getElementById(id);
 const escapeHtml = (value) => String(value).replace(/[&<>"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[character]);
@@ -72,6 +75,7 @@ function renderFilters() {
   document.querySelectorAll(".tag-button[data-dimension]").forEach((button) => button.addEventListener("click", () => {
     const values = selected[button.dataset.dimension];
     values.has(button.dataset.key) ? values.delete(button.dataset.key) : values.add(button.dataset.key);
+    currentPage = 1;
     render();
   }));
 }
@@ -176,6 +180,12 @@ async function loadAnswer(card, item) {
   }
   content.innerHTML = `<p class="answer-status">Loading answer…</p>`;
   try {
+    if (answerPromises.has(item.id)) await answerPromises.get(item.id);
+    if (answerCache.has(item.id)) {
+      content.innerHTML = renderMarkdown(answerCache.get(item.id));
+      enhanceAnswers(content);
+      return;
+    }
     const response = await fetch(`${ANSWER_API_BASE}/api/answers/${encodeURIComponent(item.id)}`);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const payload = await response.json();
@@ -188,10 +198,25 @@ async function loadAnswer(card, item) {
   }
 }
 
-function renderQuestions(records) {
+async function preloadAnswers(records) {
+  const ids = records.map((record) => record.id).filter((id) => !answerCache.has(id) && !answerPromises.has(id));
+  if (!ids.length) return;
+  const request = (async () => {
+    const response = await fetch(`${ANSWER_API_BASE}/api/answers?ids=${ids.map(encodeURIComponent).join(",")}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    for (const [id, answer] of Object.entries(payload.answers)) answerCache.set(id, answer.answer_markdown);
+  })();
+  ids.forEach((id) => answerPromises.set(id, request));
+  try { await request; }
+  catch (error) { console.error("Failed to preload page answers:", error); }
+  finally { ids.forEach((id) => answerPromises.delete(id)); }
+}
+
+function renderQuestions(records, totalRecords) {
   const active = dimensions.flatMap((dimension) => [...selected[dimension]]);
-  byId("active-filter").textContent = active.length ? `${records.length} records · ${active.map(displayName).join(", ")}` : `All topics · ${records.length}`;
-  byId("filter-summary").textContent = `${records.length} of ${qaData.length} QA records`;
+  byId("active-filter").textContent = active.length ? `${totalRecords} records · ${active.map(displayName).join(", ")}` : `All topics · ${totalRecords}`;
+  byId("filter-summary").textContent = `${totalRecords} of ${qaData.length} QA records`;
   byId("qa-list").innerHTML = records.length ? records.map((item) => `<article class="qa-card" data-id="${escapeHtml(item.id)}"><button class="question" type="button" aria-expanded="false"><span class="question-text">${renderQuestion(item.question)}</span><span class="question-toggle" aria-hidden="true">+</span></button><div class="answer"><div class="answer-content"></div>${renderResources(item)}<div class="meta">${item.direct_tags.map((tag) => `<span class="tag">${escapeHtml(displayName(tag))}</span>`).join("")}<span class="tag">${escapeHtml(item.answered_by)}</span></div></div></article>`).join("") : `<p class="empty">No questions match these filters.</p>`;
   document.querySelectorAll(".question").forEach((button) => button.addEventListener("click", () => {
     const card = button.parentElement;
@@ -202,11 +227,29 @@ function renderQuestions(records) {
   }));
 }
 
+function renderPagination(totalRecords) {
+  const totalPages = Math.max(1, Math.ceil(totalRecords / PAGE_SIZE));
+  const pagination = byId("pagination");
+  if (totalPages <= 1) { pagination.innerHTML = ""; return; }
+  const pageButtons = Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => `<button type="button" class="page-button ${page === currentPage ? "selected" : ""}" data-page="${page}" aria-label="Page ${page}" ${page === currentPage ? 'aria-current="page"' : ""}>${page}</button>`).join("");
+  pagination.innerHTML = `<button type="button" class="page-button" data-page="${currentPage - 1}" ${currentPage === 1 ? "disabled" : ""}>Previous</button>${pageButtons}<button type="button" class="page-button" data-page="${currentPage + 1}" ${currentPage === totalPages ? "disabled" : ""}>Next</button>`;
+  pagination.querySelectorAll(".page-button:not([disabled])").forEach((button) => button.addEventListener("click", () => {
+    currentPage = Number(button.dataset.page);
+    render();
+    byId("questions-heading").scrollIntoView({ behavior: "smooth", block: "start" });
+  }));
+}
+
 function render() {
   const records = filteredRecords();
+  const totalPages = Math.max(1, Math.ceil(records.length / PAGE_SIZE));
+  currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+  const pageRecords = records.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   renderFilters();
   renderChart(records);
-  renderQuestions(records);
+  renderQuestions(pageRecords, records.length);
+  renderPagination(records.length);
+  preloadAnswers(pageRecords);
 }
 
 byId("record-count").textContent = qaData.length;
@@ -216,12 +259,17 @@ byId("clear-filter").addEventListener("click", () => {
   dimensions.forEach((dimension) => selected[dimension].clear());
   tagQuery = "";
   showAllChartTags = false;
+  currentPage = 1;
   byId("tag-search").value = "";
   render();
 });
+const requestedQa = new URLSearchParams(window.location.search).get("qa");
+if (requestedQa) {
+  const requestedIndex = qaData.findIndex((record) => record.id === requestedQa);
+  if (requestedIndex >= 0) currentPage = Math.floor(requestedIndex / PAGE_SIZE) + 1;
+}
 render();
 
-const requestedQa = new URLSearchParams(window.location.search).get("qa");
 if (requestedQa) {
   const card = document.querySelector(`.qa-card[data-id="${CSS.escape(requestedQa)}"]`);
   if (card) {
