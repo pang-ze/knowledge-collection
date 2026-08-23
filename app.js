@@ -156,6 +156,17 @@ function enhanceAnswers(root = document) {
   });
 }
 
+function referenceLabel(reference) {
+  if (reference.comment) return reference.comment;
+  try { return new URL(reference.url).hostname; } catch { return reference.url; }
+}
+
+function renderResources(item) {
+  const related = item.related_qa.length ? `<section class="qa-resources"><h3>Related QA</h3><ul>${item.related_qa.map((relation) => `<li><a href="${escapeHtml(relation.url)}" target="_blank" rel="noopener noreferrer">${renderQuestion(relation.question)} <span aria-hidden="true">↗</span></a></li>`).join("")}</ul></section>` : "";
+  const references = item.references.length ? `<section class="qa-resources"><h3>References</h3><ul>${item.references.map((reference) => `<li><a href="${escapeHtml(reference.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(referenceLabel(reference))} <span aria-hidden="true">↗</span></a></li>`).join("")}</ul></section>` : "";
+  return related + references;
+}
+
 async function loadAnswer(card, item) {
   const content = card.querySelector(".answer-content");
   if (answerCache.has(item.id)) {
@@ -181,7 +192,7 @@ function renderQuestions(records) {
   const active = dimensions.flatMap((dimension) => [...selected[dimension]]);
   byId("active-filter").textContent = active.length ? `${records.length} records · ${active.map(displayName).join(", ")}` : `All topics · ${records.length}`;
   byId("filter-summary").textContent = `${records.length} of ${qaData.length} QA records`;
-  byId("qa-list").innerHTML = records.length ? records.map((item) => `<article class="qa-card" data-id="${escapeHtml(item.id)}"><button class="question" type="button" aria-expanded="false"><span class="question-text">${renderQuestion(item.question)}</span><span class="question-toggle" aria-hidden="true">+</span></button><div class="answer"><div class="answer-content"></div><div class="meta">${item.direct_tags.map((tag) => `<span class="tag">${escapeHtml(displayName(tag))}</span>`).join("")}<span class="tag">${escapeHtml(item.answered_by)}</span></div></div></article>`).join("") : `<p class="empty">No questions match these filters.</p>`;
+  byId("qa-list").innerHTML = records.length ? records.map((item) => `<article class="qa-card" data-id="${escapeHtml(item.id)}"><button class="question" type="button" aria-expanded="false"><span class="question-text">${renderQuestion(item.question)}</span><span class="question-toggle" aria-hidden="true">+</span></button><div class="answer"><div class="answer-content"></div>${renderResources(item)}<div class="meta">${item.direct_tags.map((tag) => `<span class="tag">${escapeHtml(displayName(tag))}</span>`).join("")}<span class="tag">${escapeHtml(item.answered_by)}</span></div></div></article>`).join("") : `<p class="empty">No questions match these filters.</p>`;
   document.querySelectorAll(".question").forEach((button) => button.addEventListener("click", () => {
     const card = button.parentElement;
     const open = card.classList.toggle("open");
@@ -209,3 +220,12 @@ byId("clear-filter").addEventListener("click", () => {
   render();
 });
 render();
+
+const requestedQa = new URLSearchParams(window.location.search).get("qa");
+if (requestedQa) {
+  const card = document.querySelector(`.qa-card[data-id="${CSS.escape(requestedQa)}"]`);
+  if (card) {
+    card.querySelector(".question").click();
+    requestAnimationFrame(() => card.scrollIntoView({ behavior: "smooth", block: "center" }));
+  }
+}
