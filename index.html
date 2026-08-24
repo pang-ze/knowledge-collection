@@ -6,28 +6,28 @@
     <title>Knowledge Collections</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.18.1/dist/katex.min.css" integrity="sha384-1vdNCNel6Tx/NQa8IR1mGOGKsbGreCkOPfbtPPnUURJ5Tu2PRVfQ/7KLZC+Pi1p1" crossorigin="anonymous" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.12.0/styles/github.min.css" />
-    <link rel="stylesheet" href="./styles.ccd57e61f3a3.css" />
+    <link rel="stylesheet" href="./styles.4694696c5d6b.css" />
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.18.1/dist/katex.min.js" integrity="sha384-ycJ6GAwiS15LoUPipwJOrWTvkUHl/YqELValBwI5I4awP1EeEQJYarj+w85ntcz7" crossorigin="anonymous"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/marked@18.0.7/lib/marked.umd.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/dompurify@3.4.7/dist/purify.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.12.0/highlight.min.js"></script>
-    <script defer src="./index-data.26edf5a53597.js"></script>
-    <script defer src="./app.44aaa653fe28.js"></script>
+    <script defer src="./index-data.e9323bc8840d.js"></script>
+    <script defer src="./app.d4390ba3d47a.js"></script>
   </head>
   <body>
     <main class="app-shell">
       <header class="hero">
         <div>
           <p class="eyebrow">KNOWLEDGE COLLECTIONS</p>
-          <h1>Learn across questions, research, and assessments.</h1>
-          <p class="subtitle">Browse General knowledge, Research summaries, and Assessment solutions in one place.</p>
+          <h1>Knowledge for Questions, Research, and Assessments.</h1>
+          <p class="subtitle">问答、研究与编程题知识库。</p>
         </div>
         <div class="metric"><strong id="record-count">0</strong><span>Entries</span></div>
       </header>
 
       <section class="panel" aria-labelledby="topics-heading">
         <div class="section-heading">
-          <div><p class="eyebrow">TAXONOMY</p><h2 id="topics-heading">Filter the knowledge base</h2></div>
+          <div><p class="eyebrow">TAXONOMY</p><h2 id="topics-heading">Filter Knowledge Collections</h2></div>
           <button id="clear-filter" class="text-button" type="button">Clear filters</button>
         </div>
         <div id="collection-filter" class="collection-filter" aria-label="Filter by collection"></div>
@@ -38,20 +38,19 @@
           </div>
         </div>
         <label class="search-field">
-          <span>Search by key, Chinese name, English name, or alias</span>
-          <input id="tag-search" type="search" placeholder="Try LLM, 大模型, or Large Language Model…" autocomplete="off" />
+          <input id="tag-search" type="search" aria-label="Search tags by key, Chinese name, English name, or alias" placeholder="Try LLM, 大模型, or Large Language Model…" autocomplete="off" />
         </label>
         <div class="taxonomy-filters">
-          <div class="taxonomy-row" data-taxonomy-row="topics"><div class="taxonomy-label"><strong>Topic</strong><span>Subjects</span></div><div id="topic-filter" class="taxonomy-options"></div></div>
-          <div class="taxonomy-row" data-taxonomy-row="concepts"><div class="taxonomy-label"><strong>Concept</strong><span>Methods</span></div><div id="concept-filter" class="taxonomy-options"></div></div>
-          <div class="taxonomy-row" data-taxonomy-row="keywords"><div class="taxonomy-label"><strong>Keywords</strong><span>Terms</span></div><div id="keyword-filter" class="taxonomy-options"></div></div>
-          <div class="taxonomy-row" data-taxonomy-row="publications"><div class="taxonomy-label"><strong>Publication</strong><span>Venues</span></div><div id="publication-filter" class="taxonomy-options"></div></div>
-          <div class="taxonomy-row" data-taxonomy-row="difficulties"><div class="taxonomy-label"><strong>Difficulty</strong><span>Levels</span></div><div id="difficulty-filter" class="taxonomy-options"></div></div>
+          <div class="taxonomy-row" data-taxonomy-row="topics"><div class="taxonomy-label"><strong>Topic</strong><span>主题</span></div><div id="topic-filter" class="taxonomy-options"></div></div>
+          <div class="taxonomy-row" data-taxonomy-row="concepts"><div class="taxonomy-label"><strong>Concept</strong><span>概念</span></div><div id="concept-filter" class="taxonomy-options"></div></div>
+          <div class="taxonomy-row" data-taxonomy-row="keywords"><div class="taxonomy-label"><strong>Keywords</strong><span>关键词</span></div><div id="keyword-filter" class="taxonomy-options"></div></div>
+          <div class="taxonomy-row" data-taxonomy-row="publications"><div class="taxonomy-label"><strong>Publication</strong><span>期刊会议</span></div><div id="publication-filter" class="taxonomy-options"></div></div>
+          <div class="taxonomy-row" data-taxonomy-row="difficulties"><div class="taxonomy-label"><strong>Difficulty</strong><span>难度</span></div><div id="difficulty-filter" class="taxonomy-options"></div></div>
         </div>
       </section>
 
       <section class="panel" aria-labelledby="questions-heading">
-        <div class="section-heading"><div><p class="eyebrow">ENTRIES</p><h2 id="questions-heading">Your knowledge library</h2></div><span id="active-filter" class="active-filter">All collections</span></div>
+        <div class="section-heading"><div><p class="eyebrow">知识库</p><h2 id="questions-heading">Knowledge Collections</h2></div><span id="active-filter" class="active-filter">Entries</span></div>
         <div id="page-status" class="page-status" role="status" aria-live="polite"></div>
         <div id="qa-list" class="qa-list"></div>
         <nav id="pagination" class="pagination" aria-label="Knowledge pages"></nav>
