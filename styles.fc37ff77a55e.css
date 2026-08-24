@@ -388,6 +388,7 @@ input::placeholder { color: #000; opacity: .65; }
 .question-content { transform: translateY(-2px); }
 .answer-attribution { margin-right: 4px; text-align: right; }
 .meta { margin-top: 10px; padding-top: 9px; }
+section[aria-labelledby="questions-heading"] .section-heading { margin-bottom: 12px; }
 
 @media (max-width: 720px) {
   .collection-toolbar { flex-wrap: wrap; }
