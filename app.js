@@ -3,9 +3,10 @@ const qaData = knowledge.index.records;
 const taxonomy = knowledge.taxonomy.tags;
 const PAGE_SIZE = 10;
 const TAG_PREVIEW_LIMIT = 10;
-const dimensions = ["domains", "concepts", "technologies"];
-const dimensionByType = { domain: "domains", concept: "concepts", technology: "technologies" };
-const parameterByDimension = { domains: "domain", concepts: "concept", technologies: "technology" };
+const dimensions = ["topics", "concepts", "keywords"];
+const dimensionByType = { topic: "topics", concept: "concepts", keyword: "keywords" };
+const parameterByDimension = { topics: "topic", concepts: "concept", keywords: "keyword" };
+const legacyParameterByDimension = { topics: "domain", keywords: "technology" };
 const ANSWER_API_BASE = "https://learning-notes-api.pang-ze.workers.dev";
 const answerCache = new Map();
 const answerPromises = new Map();
@@ -80,7 +81,7 @@ function filteredRecords() {
 }
 
 function renderFilters() {
-  const ids = { domains: "domain-filter", concepts: "concept-filter", technologies: "technology-filter" };
+  const ids = { topics: "topic-filter", concepts: "concept-filter", keywords: "keyword-filter" };
   for (const dimension of dimensions) {
     const tags = availableTags(dimension);
     const visibleTags = tagQuery || expandedDimensions.has(dimension) ? tags : tags.slice(0, TAG_PREVIEW_LIMIT);
@@ -314,7 +315,7 @@ byId("clear-filter").addEventListener("click", () => {
 });
 const urlParameters = new URLSearchParams(window.location.search);
 for (const [dimension, parameter] of Object.entries(parameterByDimension)) {
-  const key = urlParameters.get(parameter);
+  const key = urlParameters.get(parameter) || urlParameters.get(legacyParameterByDimension[dimension]);
   if (key && taxonomy[key] && dimensionByType[taxonomy[key].instance_of] === dimension) selected[dimension].add(key);
 }
 const requestedQa = urlParameters.get("qa");
