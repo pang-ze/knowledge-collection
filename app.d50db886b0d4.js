@@ -9,6 +9,24 @@ const dimensionByType = { topic: "topics", concept: "concepts", keyword: "keywor
 const parameterByDimension = { topics: "topic", concepts: "concept", keywords: "keyword", publications: "publication", difficulties: "difficulty" };
 const legacyParameterByDimension = { topics: "domain", keywords: "technology" };
 const ANSWER_API_BASE = "https://learning-notes-api.pang-ze.workers.dev";
+const mermaidPromise = import("https://cdn.jsdelivr.net/npm/mermaid@11.17.0/dist/mermaid.esm.min.mjs").then(({ default: mermaid }) => {
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "strict",
+    theme: "base",
+    themeVariables: {
+      primaryColor: "#A1C1A1",
+      primaryBorderColor: "#8BA995",
+      primaryTextColor: "#000000",
+      secondaryColor: "#D2C4B2",
+      tertiaryColor: "#DFDAD3",
+      lineColor: "#000000",
+      textColor: "#000000"
+    }
+  });
+  return mermaid;
+});
+let mermaidRenderQueue = Promise.resolve();
 const answerCache = new Map();
 const answerPromises = new Map();
 const selected = Object.fromEntries(dimensions.map((dimension) => [dimension, new Set()]));
@@ -168,6 +186,32 @@ function renderMath(root = document) {
   });
 }
 
+function renderMermaid(root = document) {
+  const diagrams = [...root.querySelectorAll("pre code.language-mermaid")].map((code) => {
+    const source = code.textContent;
+    const container = document.createElement("div");
+    container.className = "mermaid-diagram mermaid";
+    container.textContent = source;
+    code.parentElement.replaceWith(container);
+    return { container, source };
+  });
+  if (!diagrams.length) return;
+  mermaidRenderQueue = mermaidRenderQueue
+    .then(async () => {
+      const mermaid = await mermaidPromise;
+      const nodes = diagrams.map(({ container }) => container).filter((container) => container.isConnected);
+      if (nodes.length) await mermaid.run({ nodes, suppressErrors: true });
+    })
+    .catch((error) => {
+      diagrams.forEach(({ container, source }) => {
+        if (!container.isConnected) return;
+        container.className = "mermaid-diagram mermaid-error";
+        container.textContent = source;
+      });
+      console.error("Failed to render Mermaid diagram:", error);
+    });
+}
+
 async function copyCode(text, button) {
   try {
     if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(text);
@@ -190,6 +234,7 @@ async function copyCode(text, button) {
 
 function enhanceContent(root = document) {
   renderMath(root);
+  renderMermaid(root);
   root.querySelectorAll("a").forEach((link) => {
     link.target = "_blank";
     link.rel = "noopener noreferrer";
@@ -201,7 +246,7 @@ function enhanceContent(root = document) {
     image.loading = "lazy";
     image.decoding = "async";
   });
-  root.querySelectorAll("pre code").forEach((code) => {
+  root.querySelectorAll("pre code:not(.language-mermaid)").forEach((code) => {
     if (window.hljs) window.hljs.highlightElement(code);
     const pre = code.parentElement;
     if (pre.querySelector(":scope > .code-copy")) return;
