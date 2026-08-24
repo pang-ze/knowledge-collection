@@ -31,6 +31,13 @@
           <button id="clear-filter" class="text-button" type="button">Clear filters</button>
         </div>
         <div id="collection-filter" class="collection-filter" aria-label="Filter by collection"></div>
+        <div class="tag-language-control" aria-label="Tag display language">
+          <span>Tag names</span>
+          <div class="tag-language-switch">
+            <button type="button" data-tag-language="en" aria-pressed="true">English</button>
+            <button type="button" data-tag-language="zh" aria-pressed="false">中文</button>
+          </div>
+        </div>
         <label class="search-field">
           <span>Search by key, Chinese name, English name, or alias</span>
           <input id="tag-search" type="search" placeholder="Try LLM, 大模型, or Large Language Model…" autocomplete="off" />

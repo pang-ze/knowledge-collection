@@ -14,6 +14,7 @@ const answerPromises = new Map();
 const selected = Object.fromEntries(dimensions.map((dimension) => [dimension, new Set()]));
 const expandedDimensions = new Set();
 let tagQuery = "";
+let tagLanguage = loadTagLanguage();
 let selectedCollection = "All";
 let currentPage = 1;
 let renderVersion = 0;
@@ -55,8 +56,29 @@ function searchText(key) {
   return [key, tag.name_zh, tag.name_en, tag.preferred_name, ...tag.aliases].filter(Boolean).join(" ").toLocaleLowerCase();
 }
 
+function loadTagLanguage() {
+  try { return localStorage.getItem("knowledge-tag-language") === "zh" ? "zh" : "en"; }
+  catch { return "en"; }
+}
+
+function saveTagLanguage() {
+  try { localStorage.setItem("knowledge-tag-language", tagLanguage); }
+  catch { /* Storage can be unavailable in privacy-restricted contexts. */ }
+}
+
 function displayName(key) {
-  return taxonomy[key].preferred_name || taxonomy[key].name_en || taxonomy[key].name_zh || key;
+  const tag = taxonomy[key];
+  return tagLanguage === "zh"
+    ? tag.name_zh || tag.preferred_name || tag.name_en || key
+    : tag.name_en || tag.preferred_name || key || tag.name_zh;
+}
+
+function renderTagLanguageControl() {
+  document.querySelectorAll("[data-tag-language]").forEach((button) => {
+    const active = button.dataset.tagLanguage === tagLanguage;
+    button.classList.toggle("selected", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
 }
 
 function matchesSelections(record) {
@@ -306,6 +328,7 @@ async function render() {
   const totalPages = Math.max(1, Math.ceil(records.length / PAGE_SIZE));
   currentPage = Math.min(Math.max(currentPage, 1), totalPages);
   const pageRecords = records.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  renderTagLanguageControl();
   renderCollectionFilter();
   renderFilters();
   renderQuestions(pageRecords, records.length, pageRecords.length > 0);
@@ -330,6 +353,12 @@ async function render() {
 }
 
 byId("record-count").textContent = qaData.length;
+document.querySelectorAll("[data-tag-language]").forEach((button) => button.addEventListener("click", () => {
+  if (tagLanguage === button.dataset.tagLanguage) return;
+  tagLanguage = button.dataset.tagLanguage;
+  saveTagLanguage();
+  render();
+}));
 byId("tag-search").addEventListener("input", (event) => { tagQuery = event.target.value; renderFilters(); });
 byId("clear-filter").addEventListener("click", () => {
   dimensions.forEach((dimension) => selected[dimension].clear());
