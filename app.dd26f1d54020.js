@@ -234,6 +234,40 @@ async function copyCode(text, button) {
   setTimeout(() => { button.textContent = "Copy"; }, 1400);
 }
 
+function codeLanguageLabel(code) {
+  const languageClass = [...code.classList].find((name) => name.startsWith("language-"));
+  if (!languageClass) return "";
+  const language = languageClass.slice("language-".length).toLowerCase();
+  const labels = {
+    bash: "Bash",
+    c: "C",
+    cpp: "C++",
+    cs: "C#",
+    css: "CSS",
+    html: "HTML",
+    java: "Java",
+    javascript: "JavaScript",
+    js: "JavaScript",
+    json: "JSON",
+    jsx: "JSX",
+    markdown: "Markdown",
+    md: "Markdown",
+    plaintext: "Plain Text",
+    python: "Python",
+    py: "Python",
+    rust: "Rust",
+    shell: "Shell",
+    sql: "SQL",
+    ts: "TypeScript",
+    tsx: "TSX",
+    typescript: "TypeScript",
+    xml: "XML",
+    yaml: "YAML",
+    yml: "YAML"
+  };
+  return labels[language] || language.replace(/(^|-)([a-z])/g, (_, separator, letter) => `${separator}${letter.toUpperCase()}`);
+}
+
 function enhanceContent(root = document) {
   renderMath(root);
   renderMermaid(root);
@@ -251,14 +285,22 @@ function enhanceContent(root = document) {
   root.querySelectorAll("pre code:not(.language-mermaid)").forEach((code) => {
     if (window.hljs) window.hljs.highlightElement(code);
     const pre = code.parentElement;
-    if (pre.querySelector(":scope > .code-copy")) return;
-    const button = document.createElement("button");
-    button.className = "code-copy";
-    button.type = "button";
-    button.textContent = "Copy";
-    button.setAttribute("aria-label", "Copy code block");
-    button.addEventListener("click", (event) => { event.stopPropagation(); copyCode(code.textContent, button); });
-    pre.append(button);
+    const language = codeLanguageLabel(code);
+    if (language && !pre.querySelector(":scope > .code-language")) {
+      const label = document.createElement("span");
+      label.className = "code-language";
+      label.textContent = language;
+      pre.append(label);
+    }
+    if (!pre.querySelector(":scope > .code-copy")) {
+      const button = document.createElement("button");
+      button.className = "code-copy";
+      button.type = "button";
+      button.textContent = "Copy";
+      button.setAttribute("aria-label", "Copy code block");
+      button.addEventListener("click", (event) => { event.stopPropagation(); copyCode(code.textContent, button); });
+      pre.append(button);
+    }
   });
 }
 
