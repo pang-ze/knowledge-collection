@@ -380,15 +380,9 @@ async function render() {
   renderFilters();
   renderQuestions(pageRecords, records.length, pageRecords.length > 0);
   renderPagination(records.length);
-  byId("page-status").innerHTML = pageRecords.length ? `<span class="loading-dot" aria-hidden="true"></span> Loading page ${currentPage} answers…` : "";
-  const ready = await preloadAnswers(pageRecords);
+  await preloadAnswers(pageRecords);
   if (version !== renderVersion) return;
   document.querySelectorAll(".question").forEach((button) => { button.classList.remove("disabled"); button.tabIndex = 0; button.setAttribute("aria-disabled", "false"); });
-  if (ready) byId("page-status").textContent = "";
-  else {
-    byId("page-status").innerHTML = `Page answers could not be preloaded. Questions will retry individually. <button id="retry-page" class="text-button" type="button">Retry</button>`;
-    byId("retry-page").addEventListener("click", () => render());
-  }
   if (requestedQa && !requestedQaOpened) {
     const card = document.querySelector(`.qa-card[data-id="${CSS.escape(requestedQa)}"]`);
     if (card) {
