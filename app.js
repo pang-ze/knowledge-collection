@@ -1,11 +1,12 @@
-const knowledge = window.QA_KNOWLEDGE_DATA;
+const knowledge = window.KNOWLEDGE_DATA;
 const qaData = knowledge.index.records;
 const taxonomy = knowledge.taxonomy.tags;
+const collections = knowledge.index.collections;
 const PAGE_SIZE = 10;
 const TAG_PREVIEW_LIMIT = 10;
-const dimensions = ["topics", "concepts", "keywords"];
-const dimensionByType = { topic: "topics", concept: "concepts", keyword: "keywords" };
-const parameterByDimension = { topics: "topic", concepts: "concept", keywords: "keyword" };
+const dimensions = ["topics", "concepts", "keywords", "publications", "difficulties"];
+const dimensionByType = { topic: "topics", concept: "concepts", keyword: "keywords", publication: "publications", difficulty: "difficulties" };
+const parameterByDimension = { topics: "topic", concepts: "concept", keywords: "keyword", publications: "publication", difficulties: "difficulty" };
 const legacyParameterByDimension = { topics: "domain", keywords: "technology" };
 const ANSWER_API_BASE = "https://learning-notes-api.pang-ze.workers.dev";
 const answerCache = new Map();
@@ -13,6 +14,7 @@ const answerPromises = new Map();
 const selected = Object.fromEntries(dimensions.map((dimension) => [dimension, new Set()]));
 const expandedDimensions = new Set();
 let tagQuery = "";
+let selectedCollection = "All";
 let currentPage = 1;
 let renderVersion = 0;
 let requestedQaOpened = false;
@@ -58,11 +60,12 @@ function displayName(key) {
 }
 
 function matchesSelections(record) {
-  return dimensions.every((dimension) => selected[dimension].size === 0 || [...selected[dimension]].some((key) => record[dimension].includes(key)));
+  return (selectedCollection === "All" || record.collection === selectedCollection)
+    && dimensions.every((dimension) => selected[dimension].size === 0 || [...selected[dimension]].some((key) => record.tag_dimensions[dimension].includes(key)));
 }
 
 function availableTags(dimension) {
-  const counts = filteredRecords().flatMap((record) => record[dimension]).reduce((result, key) => {
+  const counts = filteredRecords().flatMap((record) => record.tag_dimensions[dimension]).reduce((result, key) => {
     result.set(key, (result.get(key) || 0) + 1);
     return result;
   }, new Map());
@@ -72,7 +75,7 @@ function availableTags(dimension) {
     ? Object.keys(taxonomy).filter((key) => dimensionByType[taxonomy[key].instance_of] === dimension).map((key) => [key, counts.get(key) || 0])
     : [...counts];
   return candidates
-    .filter(([key, count]) => (query ? searchText(key).includes(query) : count > 0 || selected[dimension].has(key)))
+    .filter(([key, count]) => (count > 0 || selected[dimension].has(key)) && (!query || searchText(key).includes(query)))
     .sort(([a, countA], [b, countB]) => Number(selected[dimension].has(b)) - Number(selected[dimension].has(a)) || countB - countA || displayName(a).localeCompare(displayName(b)));
 }
 
@@ -81,7 +84,7 @@ function filteredRecords() {
 }
 
 function renderFilters() {
-  const ids = { topics: "topic-filter", concepts: "concept-filter", keywords: "keyword-filter" };
+  const ids = { topics: "topic-filter", concepts: "concept-filter", keywords: "keyword-filter", publications: "publication-filter", difficulties: "difficulty-filter" };
   for (const dimension of dimensions) {
     const tags = availableTags(dimension);
     const visibleTags = tagQuery || expandedDimensions.has(dimension) ? tags : tags.slice(0, TAG_PREVIEW_LIMIT);
@@ -91,7 +94,9 @@ function renderFilters() {
       return `<button class="tag-button tag-${dimension} ${selected[dimension].has(key) ? "selected" : ""}" data-dimension="${dimension}" data-key="${escapeHtml(key)}" type="button" title="${escapeHtml(alternate)}"><span>${escapeHtml(displayName(key))}</span><strong>${count}</strong></button>`;
     }).join("");
     const expandMarkup = !tagQuery && tags.length > TAG_PREVIEW_LIMIT ? `<button class="tag-expand text-button" data-expand="${dimension}" type="button">${expandedDimensions.has(dimension) ? "Collapse" : `Show all ${tags.length}`}</button>` : "";
-    byId(ids[dimension]).innerHTML = tags.length ? tagMarkup + expandMarkup : `<span class="no-match">No matching ${dimension}</span>`;
+    const row = document.querySelector(`[data-taxonomy-row="${dimension}"]`);
+    row.hidden = tags.length === 0;
+    byId(ids[dimension]).innerHTML = tags.length ? tagMarkup + expandMarkup : "";
   }
   document.querySelectorAll(".tag-button[data-dimension]").forEach((button) => button.addEventListener("click", () => {
     const values = selected[button.dataset.dimension];
@@ -102,6 +107,20 @@ function renderFilters() {
   document.querySelectorAll(".tag-expand").forEach((button) => button.addEventListener("click", () => {
     expandedDimensions.has(button.dataset.expand) ? expandedDimensions.delete(button.dataset.expand) : expandedDimensions.add(button.dataset.expand);
     renderFilters();
+  }));
+}
+
+function renderCollectionFilter() {
+  const options = ["All", ...collections];
+  byId("collection-filter").innerHTML = options.map((collection) => {
+    const count = collection === "All" ? qaData.length : qaData.filter((record) => record.collection === collection).length;
+    return `<button class="collection-button ${selectedCollection === collection ? "selected" : ""}" type="button" data-collection="${collection}"><span>${collection}</span><strong>${count}</strong></button>`;
+  }).join("");
+  document.querySelectorAll(".collection-button").forEach((button) => button.addEventListener("click", () => {
+    selectedCollection = button.dataset.collection;
+    dimensions.forEach((dimension) => selected[dimension].clear());
+    currentPage = 1;
+    render();
   }));
 }
 
@@ -155,7 +174,8 @@ function enhanceContent(root = document) {
   });
   root.querySelectorAll("img").forEach((image) => {
     const source = image.getAttribute("src") || "";
-    if (source.startsWith("../Assets/images/")) image.src = new URL(`./${source.slice(3)}`, document.baseURI).href;
+    const assetMatch = source.match(/^(?:\.\.\/){1,2}(Assets\/images\/.*)$/);
+    if (assetMatch) image.src = new URL(`./${assetMatch[1]}`, document.baseURI).href;
     image.loading = "lazy";
     image.decoding = "async";
   });
@@ -179,14 +199,14 @@ function referenceLabel(reference) {
 }
 
 function renderResources(item) {
-  const related = item.related_qa.length ? `<section class="qa-resources related-resources"><h3>Related QA</h3><ul>${item.related_qa.map((relation) => `<li><div class="related-link" role="link" tabindex="0" data-url="${escapeHtml(relation.url)}"><div class="related-question markdown-content">${renderMarkdown(relation.question)}</div><span aria-hidden="true">↗</span></div></li>`).join("")}</ul></section>` : "";
-  const references = item.references.length ? `<section class="qa-resources reference-resources"><h3>References</h3><ul>${item.references.map((reference) => `<li><a href="${escapeHtml(reference.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(referenceLabel(reference))} <span aria-hidden="true">↗</span></a></li>`).join("")}</ul></section>` : "";
+  const related = item.related_entries.length ? `<section class="qa-resources related-resources"><h3>Related Entries</h3><ul>${item.related_entries.map((relation) => `<li><div class="related-link" role="link" tabindex="0" data-url="${escapeHtml(relation.url)}"><span class="collection-badge">${escapeHtml(relation.collection)}</span><div class="related-question markdown-content">${renderMarkdown(relation.question)}</div><span aria-hidden="true">↗</span></div>${relation.comment ? `<small>${escapeHtml(relation.comment)}</small>` : ""}</li>`).join("")}</ul></section>` : "";
+  const references = item.references.length ? `<section class="qa-resources reference-resources"><h3>References</h3><ul>${item.references.map((reference) => `<li><a href="${escapeHtml(reference.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(reference.title || referenceLabel(reference))} <span aria-hidden="true">↗</span></a>${reference.comment ? `<small>${escapeHtml(reference.comment)}</small>` : ""}</li>`).join("")}</ul></section>` : "";
   return related + references;
 }
 
-function tagFilterUrl(key) {
+function tagFilterUrl(key, collection) {
   const dimension = dimensionByType[taxonomy[key].instance_of];
-  return `?${parameterByDimension[dimension]}=${encodeURIComponent(key)}`;
+  return `?collection=${encodeURIComponent(collection)}&${parameterByDimension[dimension]}=${encodeURIComponent(key)}`;
 }
 
 async function loadAnswer(card, item) {
@@ -204,7 +224,7 @@ async function loadAnswer(card, item) {
       enhanceContent(content);
       return;
     }
-    const response = await fetchWithTimeout(`${ANSWER_API_BASE}/api/answers/${encodeURIComponent(item.id)}`);
+    const response = await fetchWithTimeout(`${ANSWER_API_BASE}/api/entries/${encodeURIComponent(item.id)}`);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const payload = await response.json();
     answerCache.set(item.id, payload.answer_markdown);
@@ -222,10 +242,10 @@ async function preloadAnswers(records) {
   const newIds = ids.filter((id) => !answerPromises.has(id));
   let request = null;
   if (newIds.length) request = (async () => {
-    const response = await fetchWithTimeout(`${ANSWER_API_BASE}/api/answers?ids=${newIds.map(encodeURIComponent).join(",")}`);
+    const response = await fetchWithTimeout(`${ANSWER_API_BASE}/api/entries?ids=${newIds.map(encodeURIComponent).join(",")}`);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const payload = await response.json();
-    for (const [id, answer] of Object.entries(payload.answers)) answerCache.set(id, answer.answer_markdown);
+    for (const [id, answer] of Object.entries(payload.entries)) answerCache.set(id, answer.answer_markdown);
   })();
   if (request) newIds.forEach((id) => answerPromises.set(id, request));
   try {
@@ -241,8 +261,9 @@ async function preloadAnswers(records) {
 
 function renderQuestions(records, totalRecords, disabled = true) {
   const active = dimensions.flatMap((dimension) => [...selected[dimension]]);
-  byId("active-filter").textContent = active.length ? `${totalRecords} records · ${active.map(displayName).join(", ")}` : `All topics · ${totalRecords}`;
-  byId("qa-list").innerHTML = records.length ? records.map((item) => `<article class="qa-card" data-id="${escapeHtml(item.id)}"><div class="question ${disabled ? "disabled" : ""}" role="button" tabindex="${disabled ? "-1" : "0"}" aria-expanded="false" aria-disabled="${disabled}"><div class="question-content markdown-content">${renderMarkdown(item.question)}</div><span class="question-toggle" aria-hidden="true">+</span></div><div class="answer"><div class="answer-content markdown-content"></div>${renderResources(item)}<div class="meta">${item.direct_tags.map((tag) => `<a class="tag" href="${tagFilterUrl(tag)}" target="_blank" rel="noopener noreferrer">${escapeHtml(displayName(tag))} ↗</a>`).join("")}<span class="tag">${escapeHtml(item.answered_by)}</span></div></div></article>`).join("") : `<p class="empty">No questions match these filters.</p>`;
+  const scope = selectedCollection === "All" ? "All collections" : selectedCollection;
+  byId("active-filter").textContent = active.length ? `${scope} · ${totalRecords} · ${active.map(displayName).join(", ")}` : `${scope} · ${totalRecords}`;
+  byId("qa-list").innerHTML = records.length ? records.map((item) => `<article class="qa-card" data-id="${escapeHtml(item.id)}"><div class="question ${disabled ? "disabled" : ""}" role="button" tabindex="${disabled ? "-1" : "0"}" aria-expanded="false" aria-disabled="${disabled}"><div class="question-content markdown-content">${renderMarkdown(item.question)}</div><span class="question-toggle" aria-hidden="true">+</span></div><div class="answer"><div class="answer-content markdown-content"></div>${renderResources(item)}<div class="meta"><span class="tag">${escapeHtml(item.collection)}</span>${item.direct_tags.map((tag) => `<a class="tag" href="${tagFilterUrl(tag, item.collection)}" target="_blank" rel="noopener noreferrer">${escapeHtml(displayName(tag))} ↗</a>`).join("")}<span class="tag">${escapeHtml(item.answered_by)}</span></div></div></article>`).join("") : `<p class="empty">No entries match these filters.</p>`;
   document.querySelectorAll(".question").forEach((button) => {
     const toggle = (event) => {
       if (button.classList.contains("disabled") || event.target.closest("a, .code-copy")) return;
@@ -282,6 +303,7 @@ async function render() {
   const totalPages = Math.max(1, Math.ceil(records.length / PAGE_SIZE));
   currentPage = Math.min(Math.max(currentPage, 1), totalPages);
   const pageRecords = records.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  renderCollectionFilter();
   renderFilters();
   renderQuestions(pageRecords, records.length, pageRecords.length > 0);
   renderPagination(records.length);
@@ -308,17 +330,20 @@ byId("record-count").textContent = qaData.length;
 byId("tag-search").addEventListener("input", (event) => { tagQuery = event.target.value; renderFilters(); });
 byId("clear-filter").addEventListener("click", () => {
   dimensions.forEach((dimension) => selected[dimension].clear());
+  selectedCollection = "All";
   tagQuery = "";
   currentPage = 1;
   byId("tag-search").value = "";
   render();
 });
 const urlParameters = new URLSearchParams(window.location.search);
+const collectionParameter = urlParameters.get("collection");
+if (collectionParameter && collections.includes(collectionParameter)) selectedCollection = collectionParameter;
 for (const [dimension, parameter] of Object.entries(parameterByDimension)) {
   const key = urlParameters.get(parameter) || urlParameters.get(legacyParameterByDimension[dimension]);
   if (key && taxonomy[key] && dimensionByType[taxonomy[key].instance_of] === dimension) selected[dimension].add(key);
 }
-const requestedQa = urlParameters.get("qa");
+const requestedQa = urlParameters.get("entry") || urlParameters.get("qa");
 if (requestedQa) {
   const requestedIndex = filteredRecords().findIndex((record) => record.id === requestedQa);
   if (requestedIndex >= 0) currentPage = Math.floor(requestedIndex / PAGE_SIZE) + 1;

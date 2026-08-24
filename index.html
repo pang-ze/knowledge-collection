@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>QA Knowledge Dashboard</title>
+    <title>Knowledge Collections</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.18.1/dist/katex.min.css" integrity="sha384-1vdNCNel6Tx/NQa8IR1mGOGKsbGreCkOPfbtPPnUURJ5Tu2PRVfQ/7KLZC+Pi1p1" crossorigin="anonymous" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.12.0/styles/github-dark.min.css" />
     <link rel="stylesheet" href="./styles.css" />
@@ -18,11 +18,11 @@
     <main class="app-shell">
       <header class="hero">
         <div>
-          <p class="eyebrow">QA KNOWLEDGE BASE</p>
-          <h1>Learn by asking better questions.</h1>
-          <p class="subtitle">Browse the collection, filter by topic, and reveal answers when you are ready.</p>
+          <p class="eyebrow">KNOWLEDGE COLLECTIONS</p>
+          <h1>Learn across questions, research, and assessments.</h1>
+          <p class="subtitle">Browse General knowledge, Research summaries, and Assessment solutions in one place.</p>
         </div>
-        <div class="metric"><strong id="record-count">0</strong><span>QA records</span></div>
+        <div class="metric"><strong id="record-count">0</strong><span>Entries</span></div>
       </header>
 
       <section class="panel" aria-labelledby="topics-heading">
@@ -30,22 +30,25 @@
           <div><p class="eyebrow">TAXONOMY</p><h2 id="topics-heading">Filter the knowledge base</h2></div>
           <button id="clear-filter" class="text-button" type="button">Clear filters</button>
         </div>
+        <div id="collection-filter" class="collection-filter" aria-label="Filter by collection"></div>
         <label class="search-field">
           <span>Search by key, Chinese name, English name, or alias</span>
           <input id="tag-search" type="search" placeholder="Try LLM, 大模型, or Large Language Model…" autocomplete="off" />
         </label>
         <div class="taxonomy-filters">
-          <div class="taxonomy-row"><div class="taxonomy-label"><strong>Topic</strong><span>Subjects</span></div><div id="topic-filter" class="taxonomy-options"></div></div>
-          <div class="taxonomy-row"><div class="taxonomy-label"><strong>Concept</strong><span>Methods</span></div><div id="concept-filter" class="taxonomy-options"></div></div>
-          <div class="taxonomy-row"><div class="taxonomy-label"><strong>Keywords</strong><span>Terms</span></div><div id="keyword-filter" class="taxonomy-options"></div></div>
+          <div class="taxonomy-row" data-taxonomy-row="topics"><div class="taxonomy-label"><strong>Topic</strong><span>Subjects</span></div><div id="topic-filter" class="taxonomy-options"></div></div>
+          <div class="taxonomy-row" data-taxonomy-row="concepts"><div class="taxonomy-label"><strong>Concept</strong><span>Methods</span></div><div id="concept-filter" class="taxonomy-options"></div></div>
+          <div class="taxonomy-row" data-taxonomy-row="keywords"><div class="taxonomy-label"><strong>Keywords</strong><span>Terms</span></div><div id="keyword-filter" class="taxonomy-options"></div></div>
+          <div class="taxonomy-row" data-taxonomy-row="publications"><div class="taxonomy-label"><strong>Publication</strong><span>Venues</span></div><div id="publication-filter" class="taxonomy-options"></div></div>
+          <div class="taxonomy-row" data-taxonomy-row="difficulties"><div class="taxonomy-label"><strong>Difficulty</strong><span>Levels</span></div><div id="difficulty-filter" class="taxonomy-options"></div></div>
         </div>
       </section>
 
       <section class="panel" aria-labelledby="questions-heading">
-        <div class="section-heading"><div><p class="eyebrow">QUESTIONS</p><h2 id="questions-heading">Your QA library</h2></div><span id="active-filter" class="active-filter">All topics</span></div>
+        <div class="section-heading"><div><p class="eyebrow">ENTRIES</p><h2 id="questions-heading">Your knowledge library</h2></div><span id="active-filter" class="active-filter">All collections</span></div>
         <div id="page-status" class="page-status" role="status" aria-live="polite"></div>
         <div id="qa-list" class="qa-list"></div>
-        <nav id="pagination" class="pagination" aria-label="QA pages"></nav>
+        <nav id="pagination" class="pagination" aria-label="Knowledge pages"></nav>
       </section>
     </main>
   </body>

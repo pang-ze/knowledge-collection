@@ -1,3 +1,3 @@
 # Learning Notes
 
-Public QA learning dashboard generated from the private knowledge-base repository.
+Public knowledge dashboard generated from the private repository.
