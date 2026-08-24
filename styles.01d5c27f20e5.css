@@ -379,8 +379,9 @@ input::placeholder { color: #000; opacity: .65; }
 .combined-resources { display: grid; gap: 0; }
 .resource-group { min-width: 0; }
 .resource-group + .resource-group { margin-top: 16px; padding-top: 16px; border-top: 1px solid #50808E; }
-.markdown-content pre { background: #A3C9A8; color: #000; }
+.markdown-content pre { padding-top: 52px; background: #A3C9A8; color: #000; }
 .markdown-content pre::before { display: none; }
+.markdown-content pre::after { position: absolute; top: 39px; right: 0; left: 0; height: 1px; background: #50808E; content: ""; }
 .markdown-content pre code { color: #000; }
 .code-language { position: absolute; top: 14px; left: 17px; color: #000; font: 700 11px/1.2 ui-sans-serif, system-ui, sans-serif; letter-spacing: .04em; }
 .code-copy, .code-copy:hover { border-color: #50808E; background: #84B59F; color: #000; }
