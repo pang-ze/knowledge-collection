@@ -174,7 +174,15 @@ function normalizeMarkdownEmphasis(markdown) {
   return String(markdown)
     .split(/(```[\s\S]*?```|~~~[\s\S]*?~~~|`+[^`\n]*`+)/g)
     .map((segment, index) => index % 2 === 0
-      ? segment.replace(/(\*\*[^*\n]+?\*\*)(?=[\p{L}\p{N}])/gu, "$1 ")
+      ? segment.split(/(\r?\n)/).map((line) => {
+          let markerIndex = 0;
+          return line.replace(/(?<!\\)(?<!\*)\*\*(?!\*)/g, (marker, offset) => {
+            markerIndex += 1;
+            const closesStrongText = markerIndex % 2 === 0;
+            const followedByText = /^[\p{L}\p{N}]/u.test(line.slice(offset + marker.length));
+            return closesStrongText && followedByText ? `${marker} ` : marker;
+          });
+        }).join("")
       : segment)
     .join("");
 }
