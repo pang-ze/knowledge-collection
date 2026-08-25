@@ -69,9 +69,13 @@ if (window.marked) {
   });
 }
 
+function normalizeSearchText(value) {
+  return String(value).toLocaleLowerCase().replace(/-+/g, " ").replace(/\s+/g, " ").trim();
+}
+
 function searchText(key) {
   const tag = taxonomy[key];
-  return [key, tag.name_zh, tag.name_en, ...tag.aliases].filter(Boolean).join(" ").toLocaleLowerCase();
+  return normalizeSearchText([key, tag.name_zh, tag.name_en, ...tag.aliases].filter(Boolean).join(" "));
 }
 
 function loadTagLanguage() {
@@ -110,7 +114,7 @@ function availableTags(dimension) {
     return result;
   }, new Map());
   selected[dimension].forEach((key) => { if (!counts.has(key)) counts.set(key, 0); });
-  const query = tagQuery.trim().toLocaleLowerCase();
+  const query = normalizeSearchText(tagQuery);
   const candidates = query
     ? Object.keys(taxonomy).filter((key) => dimensionByType[taxonomy[key].instance_of] === dimension).map((key) => [key, counts.get(key) || 0])
     : [...counts];
@@ -120,11 +124,11 @@ function availableTags(dimension) {
 }
 
 function filteredRecords() {
-  const query = tagQuery.trim().toLocaleLowerCase();
+  const query = normalizeSearchText(tagQuery);
   return qaData
     .filter((record) => matchesSelections(record))
     .filter((record) => !query
-      || record.question.toLocaleLowerCase().includes(query)
+      || normalizeSearchText(record.question).includes(query)
       || dimensions.some((dimension) => record.tag_dimensions[dimension].some((key) => searchText(key).includes(query))))
     .sort((a, b) => {
       const frequentDifference = Number(b.is_frequent) - Number(a.is_frequent);
