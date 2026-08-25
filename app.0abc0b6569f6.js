@@ -285,6 +285,7 @@ function codeLanguageLabel(code) {
     markdown: "Markdown",
     md: "Markdown",
     plaintext: "Plain Text",
+    text: "Plain Text",
     python: "Python",
     py: "Python",
     rust: "Rust",
@@ -315,7 +316,10 @@ function enhanceContent(root = document) {
     image.decoding = "async";
   });
   root.querySelectorAll("pre code:not(.language-mermaid)").forEach((code) => {
-    if (window.hljs) window.hljs.highlightElement(code);
+    const languageClass = [...code.classList].find((name) => name.startsWith("language-"));
+    const languageName = languageClass?.slice("language-".length).toLowerCase();
+    if (!languageClass) code.classList.add("language-plaintext");
+    if (window.hljs && languageName && !["plaintext", "text"].includes(languageName)) window.hljs.highlightElement(code);
     const pre = code.parentElement;
     const language = codeLanguageLabel(code);
     if (language && !pre.querySelector(":scope > .code-language")) {
