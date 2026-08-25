@@ -352,11 +352,11 @@ function tagFilterUrl(key, collection) {
   return `?collection=${encodeURIComponent(collection)}&${parameterByDimension[dimension]}=${encodeURIComponent(key)}`;
 }
 
-function formatUtcTimestamp(value) {
+function formatUtcDate(value) {
   const timestamp = new Date(value);
   return Number.isNaN(timestamp.getTime())
     ? String(value)
-    : timestamp.toISOString().replace("T", " ").replace(/\.\d{3}Z$/, " UTC");
+    : timestamp.toISOString().slice(0, 10);
 }
 
 async function loadAnswer(card, item) {
@@ -415,7 +415,7 @@ function renderQuestions(records, totalRecords, disabled = true) {
   byId("active-filter").textContent = active.length ? `${scope} · ${totalRecords} · ${active.map(displayName).join(", ")}` : `${scope} · ${totalRecords}`;
   byId("qa-list").innerHTML = records.length ? records.map((item, index) => {
     const entryNumber = String((currentPage - 1) * PAGE_SIZE + index + 1).padStart(2, "0");
-    return `<article class="qa-card" data-id="${escapeHtml(item.id)}"><div class="question ${item.is_frequent ? "frequent" : ""} ${disabled ? "disabled" : ""}" data-number="${entryNumber}" role="button" tabindex="${disabled ? "-1" : "0"}" aria-expanded="false" aria-disabled="${disabled}"><div class="question-content markdown-content">${renderMarkdown(item.question)}</div>${item.is_frequent ? `<span class="frequent-icon" role="img" aria-label="Frequent" title="Frequent">★</span>` : ""}<span class="question-toggle" aria-hidden="true">+</span></div><div class="answer"><div class="answer-content markdown-content"></div>${renderResources(item)}<div class="meta">${item.direct_tags.map((tag) => `<a class="tag" href="${tagFilterUrl(tag, item.collection)}" target="_blank" rel="noopener noreferrer">${escapeHtml(displayName(tag))} <span aria-hidden="true">↗</span></a>`).join("")}</div><div class="entry-details"><span>Modified: ${escapeHtml(formatUtcTimestamp(item.modified_at))}</span><span>Answered by ${escapeHtml(item.answered_by)}</span></div></div></article>`;
+    return `<article class="qa-card" data-id="${escapeHtml(item.id)}"><div class="question ${item.is_frequent ? "frequent" : ""} ${disabled ? "disabled" : ""}" data-number="${entryNumber}" role="button" tabindex="${disabled ? "-1" : "0"}" aria-expanded="false" aria-disabled="${disabled}"><div class="question-content markdown-content">${renderMarkdown(item.question)}</div>${item.is_frequent ? `<span class="frequent-icon" role="img" aria-label="Frequent" title="Frequent">★</span>` : ""}<span class="question-toggle" aria-hidden="true">+</span></div><div class="answer"><div class="answer-content markdown-content"></div>${renderResources(item)}<div class="meta">${item.direct_tags.map((tag) => `<a class="tag" href="${tagFilterUrl(tag, item.collection)}" target="_blank" rel="noopener noreferrer">${escapeHtml(displayName(tag))} <span aria-hidden="true">↗</span></a>`).join("")}</div><div class="entry-details"><span>Last Modified: ${escapeHtml(formatUtcDate(item.modified_at))} UTC</span><span>Answered by ${escapeHtml(item.answered_by)} (${escapeHtml(formatUtcDate(item.created_at))} UTC)</span></div></div></article>`;
   }).join("") : `<p class="empty">No entries match these filters.</p>`;
   document.querySelectorAll(".question").forEach((button) => {
     const toggle = (event) => {
