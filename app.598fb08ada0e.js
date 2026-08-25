@@ -126,7 +126,13 @@ function filteredRecords() {
     .filter((record) => !query
       || record.question.toLocaleLowerCase().includes(query)
       || dimensions.some((dimension) => record.tag_dimensions[dimension].some((key) => searchText(key).includes(query))))
-    .sort((a, b) => Number(b.is_frequent) - Number(a.is_frequent));
+    .sort((a, b) => {
+      const frequentDifference = Number(b.is_frequent) - Number(a.is_frequent);
+      if (frequentDifference) return frequentDifference;
+      const modifiedA = Date.parse(a.modified_at);
+      const modifiedB = Date.parse(b.modified_at);
+      return (Number.isNaN(modifiedB) ? 0 : modifiedB) - (Number.isNaN(modifiedA) ? 0 : modifiedA);
+    });
 }
 
 function renderFilters() {
