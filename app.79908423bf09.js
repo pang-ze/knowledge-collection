@@ -170,9 +170,19 @@ function renderCollectionFilter() {
   }));
 }
 
+function normalizeMarkdownEmphasis(markdown) {
+  return String(markdown)
+    .split(/(```[\s\S]*?```|~~~[\s\S]*?~~~|`+[^`\n]*`+)/g)
+    .map((segment, index) => index % 2 === 0
+      ? segment.replace(/(\*\*[^*\n]+?\*\*)(?=[\p{L}\p{N}])/gu, "$1 ")
+      : segment)
+    .join("");
+}
+
 function renderMarkdown(markdown) {
-  if (!window.marked || !window.DOMPurify) return `<p>${escapeHtml(markdown).replace(/\r?\n/g, "<br>")}</p>`;
-  return window.DOMPurify.sanitize(window.marked.parse(markdown));
+  const normalizedMarkdown = normalizeMarkdownEmphasis(markdown);
+  if (!window.marked || !window.DOMPurify) return `<p>${escapeHtml(normalizedMarkdown).replace(/\r?\n/g, "<br>")}</p>`;
+  return window.DOMPurify.sanitize(window.marked.parse(normalizedMarkdown));
 }
 
 async function fetchWithTimeout(url, timeoutMs = 8000) {
