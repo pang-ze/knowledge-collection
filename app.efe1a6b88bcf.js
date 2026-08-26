@@ -4,6 +4,7 @@ const taxonomy = knowledge.taxonomy.tags;
 const collections = knowledge.index.collections;
 const PAGE_SIZE = 10;
 const TAG_PREVIEW_LIMIT = 10;
+const TAG_LANGUAGE_STORAGE_KEY = "knowledge-tag-language-v3";
 const dimensions = ["topics", "concepts", "keywords", "publications", "difficulties"];
 const dimensionByType = { topic: "topics", concept: "concepts", keyword: "keywords", publication: "publications", difficulty: "difficulties" };
 const parameterByDimension = { topics: "topic", concepts: "concept", keywords: "keyword", publications: "publication", difficulties: "difficulty" };
@@ -79,12 +80,12 @@ function searchText(key) {
 }
 
 function loadTagLanguage() {
-  try { return localStorage.getItem("knowledge-tag-language") === "zh" ? "zh" : "en"; }
+  try { return localStorage.getItem(TAG_LANGUAGE_STORAGE_KEY) === "zh" ? "zh" : "en"; }
   catch { return "en"; }
 }
 
 function saveTagLanguage() {
-  try { localStorage.setItem("knowledge-tag-language", tagLanguage); }
+  try { localStorage.setItem(TAG_LANGUAGE_STORAGE_KEY, tagLanguage); }
   catch { /* Storage can be unavailable in privacy-restricted contexts. */ }
 }
 
@@ -151,8 +152,13 @@ function renderFilters() {
     }).join("");
     const expandMarkup = !tagQuery && tags.length > TAG_PREVIEW_LIMIT ? `<button class="tag-expand text-button" data-expand="${dimension}" type="button">${expandedDimensions.has(dimension) ? "Collapse" : `Show all ${tags.length}`}</button>` : "";
     const row = document.querySelector(`[data-taxonomy-row="${dimension}"]`);
-    row.hidden = tags.length === 0 || (selectedCollection === "All" && (dimension === "publications" || dimension === "difficulties"));
-    byId(ids[dimension]).innerHTML = tags.length ? tagMarkup + expandMarkup : "";
+    const isCoreDimension = ["topics", "concepts", "keywords"].includes(dimension);
+    const isCollectionSpecificDimension = (dimension === "publications" && selectedCollection === "Papers")
+      || (dimension === "difficulties" && selectedCollection === "Coding");
+    row.hidden = !isCoreDimension && !isCollectionSpecificDimension;
+    byId(ids[dimension]).innerHTML = tags.length
+      ? tagMarkup + expandMarkup
+      : `<span class="no-match">${tagQuery ? "No matching tags." : "No tags in this collection."}</span>`;
   }
   document.querySelectorAll(".tag-button[data-dimension]").forEach((button) => button.addEventListener("click", () => {
     const values = selected[button.dataset.dimension];
