@@ -5,9 +5,9 @@ const collections = knowledge.index.collections;
 const PAGE_SIZE = 10;
 const TAG_PREVIEW_LIMIT = 10;
 const TAG_LANGUAGE_STORAGE_KEY = "knowledge-tag-language-v3";
-const dimensions = ["topics", "concepts", "keywords", "publications", "difficulties"];
-const dimensionByType = { topic: "topics", concept: "concepts", keyword: "keywords", publication: "publications", difficulty: "difficulties" };
-const parameterByDimension = { topics: "topic", concepts: "concept", keywords: "keyword", publications: "publication", difficulties: "difficulty" };
+const dimensions = ["topics", "concepts", "keywords", "impacts", "publications", "difficulties"];
+const dimensionByType = { topic: "topics", concept: "concepts", keyword: "keywords", impact: "impacts", publication: "publications", difficulty: "difficulties" };
+const parameterByDimension = { topics: "topic", concepts: "concept", keywords: "keyword", impacts: "impact", publications: "publication", difficulties: "difficulty" };
 const legacyParameterByDimension = { topics: "domain", keywords: "technology" };
 const ANSWER_API_BASE = "https://learning-notes-api.pang-ze.workers.dev";
 const mermaidPromise = import("https://cdn.jsdelivr.net/npm/mermaid@11.17.0/dist/mermaid.esm.min.mjs").then(({ default: mermaid }) => {
@@ -141,7 +141,7 @@ function filteredRecords() {
 }
 
 function renderFilters() {
-  const ids = { topics: "topic-filter", concepts: "concept-filter", keywords: "keyword-filter", publications: "publication-filter", difficulties: "difficulty-filter" };
+  const ids = { topics: "topic-filter", concepts: "concept-filter", keywords: "keyword-filter", impacts: "impact-filter", publications: "publication-filter", difficulties: "difficulty-filter" };
   for (const dimension of dimensions) {
     const tags = availableTags(dimension);
     const visibleTags = tagQuery || expandedDimensions.has(dimension) ? tags : tags.slice(0, TAG_PREVIEW_LIMIT);
@@ -154,7 +154,8 @@ function renderFilters() {
     const row = document.querySelector(`[data-taxonomy-row="${dimension}"]`);
     const isCoreDimension = ["topics", "concepts", "keywords"].includes(dimension);
     const isCollectionSpecificDimension = (dimension === "publications" && selectedCollection === "Papers")
-      || (dimension === "difficulties" && selectedCollection === "Coding");
+      || (dimension === "difficulties" && selectedCollection === "Coding")
+      || (dimension === "impacts" && ["Papers", "Repositories"].includes(selectedCollection));
     row.hidden = !isCoreDimension && !isCollectionSpecificDimension;
     byId(ids[dimension]).innerHTML = tags.length
       ? tagMarkup + expandMarkup
