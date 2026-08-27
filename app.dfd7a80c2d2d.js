@@ -265,23 +265,37 @@ function enhanceAnswerSections(root) {
     ["summary", { className: "answer-summary", label: "SUMMARY" }],
     ["details", { className: "answer-details", label: "DETAILS" }]
   ]);
-  const headings = [...root.children].filter((element) =>
-    /^H[1-6]$/.test(element.tagName) && sectionNames.has(element.textContent.trim().toLocaleLowerCase())
-  );
+  const sections = [];
+  let currentSection = null;
+  for (const node of [...root.childNodes]) {
+    const name = node.nodeType === Node.ELEMENT_NODE && /^H[1-6]$/.test(node.tagName)
+      ? node.textContent.trim().toLocaleLowerCase()
+      : null;
+    if (sectionNames.has(name)) {
+      currentSection = { name, nodes: [node] };
+      sections.push(currentSection);
+    } else if (currentSection) {
+      currentSection.nodes.push(node);
+    }
+  }
+  if (!sections.length) return;
 
-  for (const heading of headings) {
-    const definition = sectionNames.get(heading.textContent.trim().toLocaleLowerCase());
-    const nextHeading = headings.find((candidate) => candidate.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_PRECEDING);
+  const insertionPoint = document.createComment("ordered answer sections");
+  sections[0].nodes[0].before(insertionPoint);
+  const orderedSections = ["summary", "details"].flatMap((name) => sections.filter((section) => section.name === name));
+  for (const { name, nodes } of orderedSections) {
+    const heading = nodes[0];
+    const definition = sectionNames.get(name);
     const section = document.createElement("section");
     section.className = `answer-section ${definition.className}`;
     const label = document.createElement("span");
     label.className = "answer-section-label";
     label.textContent = definition.label;
     heading.classList.add("answer-section-title");
-    heading.before(section);
-    section.append(label, heading);
-    while (section.nextSibling && section.nextSibling !== nextHeading) section.append(section.nextSibling);
+    section.append(label, ...nodes);
+    insertionPoint.parentNode.insertBefore(section, insertionPoint);
   }
+  insertionPoint.remove();
 }
 
 async function copyCode(text, button) {
@@ -511,8 +525,9 @@ async function render() {
     const card = document.querySelector(`.qa-card[data-id="${CSS.escape(requestedQa)}"]`);
     if (card) {
       requestedQaOpened = true;
-      card.querySelector(".question").click();
-      requestAnimationFrame(() => card.scrollIntoView({ behavior: "smooth", block: "center" }));
+      const question = card.querySelector(".question");
+      question.click();
+      requestAnimationFrame(() => question.scrollIntoView({ behavior: "auto", block: "start" }));
     }
   }
 }
