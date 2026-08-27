@@ -241,7 +241,14 @@ function renderMermaid(root = document) {
     .then(async () => {
       const mermaid = await mermaidPromise;
       const nodes = diagrams.map(({ container }) => container).filter((container) => container.isConnected);
-      if (nodes.length) await mermaid.run({ nodes, suppressErrors: true });
+      if (nodes.length) {
+        await mermaid.run({ nodes, suppressErrors: true });
+        nodes.forEach((container) => {
+          const svg = container.querySelector("svg");
+          const naturalWidth = svg?.viewBox?.baseVal?.width;
+          if (naturalWidth > 0) svg.style.setProperty("--mermaid-natural-width", `${Math.ceil(naturalWidth)}px`);
+        });
+      }
     })
     .catch((error) => {
       diagrams.forEach(({ container, source }) => {

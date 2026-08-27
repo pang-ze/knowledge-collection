@@ -414,7 +414,7 @@ section[aria-labelledby="questions-heading"] .section-heading { margin-bottom: 1
   .answer-summary { padding-left: 19px; }
   .answer-details { padding-top: 27px; }
   .mermaid-diagram { display: block; overflow-x: auto; }
-  .mermaid-diagram svg { width: auto !important; max-width: none !important; }
+  .mermaid-diagram svg { width: max(100%, var(--mermaid-natural-width, 100%)) !important; max-width: none !important; }
 }
 
 @media print {
