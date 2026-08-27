@@ -262,10 +262,8 @@ function renderMermaid(root = document) {
 
 function enhanceAnswerSections(root) {
   const sectionNames = new Map([
-    ["short answer", { className: "answer-summary", label: "SUMMARY" }],
-    ["short answers", { className: "answer-summary", label: "SUMMARY" }],
-    ["full answer", { className: "answer-details", label: "DETAILS" }],
-    ["full answers", { className: "answer-details", label: "DETAILS" }]
+    ["summary", { className: "answer-summary", label: "SUMMARY" }],
+    ["details", { className: "answer-details", label: "DETAILS" }]
   ]);
   const headings = [...root.children].filter((element) =>
     /^H[1-6]$/.test(element.tagName) && sectionNames.has(element.textContent.trim().toLocaleLowerCase())
