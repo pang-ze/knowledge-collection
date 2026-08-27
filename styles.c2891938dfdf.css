@@ -413,6 +413,8 @@ section[aria-labelledby="questions-heading"] .section-heading { margin-bottom: 1
   .answer-section { padding: 17px 16px; }
   .answer-summary { padding-left: 19px; }
   .answer-details { padding-top: 27px; }
+  .mermaid-diagram { display: block; overflow-x: auto; }
+  .mermaid-diagram svg { width: auto !important; max-width: none !important; }
 }
 
 @media print {
