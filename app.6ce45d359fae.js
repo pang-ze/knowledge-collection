@@ -269,6 +269,7 @@ function enhanceAnswerSections(root) {
     const nextHeading = headings.find((candidate) => candidate.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_PRECEDING);
     const section = document.createElement(definition.collapsible ? "details" : "section");
     section.className = `answer-section ${definition.className}`;
+    if (definition.collapsible) section.open = true;
     const label = document.createElement(definition.collapsible ? "summary" : "span");
     label.className = definition.collapsible ? "answer-details-toggle" : "answer-section-label";
     label.textContent = definition.label;
