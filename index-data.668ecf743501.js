@@ -1,0 +1,1 @@
+window.KNOWLEDGE_DATA = {"taxonomy":{"schema_version":3,"tags":{},"generated_at":"2026-08-27T07:10:37.019Z"},"index":{"schema_version":2,"generated_at":"2026-08-27T07:10:37.019Z","collections":["General","Papers","Coding","Articles","Repositories"],"records":[]}};
