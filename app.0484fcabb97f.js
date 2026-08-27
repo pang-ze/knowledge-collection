@@ -255,10 +255,10 @@ function renderMermaid(root = document) {
 
 function enhanceAnswerSections(root) {
   const sectionNames = new Map([
-    ["short answer", { className: "answer-summary", label: "Summary", collapsible: false }],
-    ["short answers", { className: "answer-summary", label: "Summary", collapsible: false }],
-    ["full answer", { className: "answer-details", label: "Details", collapsible: true }],
-    ["full answers", { className: "answer-details", label: "Details", collapsible: true }]
+    ["short answer", { className: "answer-summary", label: "SUMMARY" }],
+    ["short answers", { className: "answer-summary", label: "SUMMARY" }],
+    ["full answer", { className: "answer-details", label: "DETAILS" }],
+    ["full answers", { className: "answer-details", label: "DETAILS" }]
   ]);
   const headings = [...root.children].filter((element) =>
     /^H[1-6]$/.test(element.tagName) && sectionNames.has(element.textContent.trim().toLocaleLowerCase())
@@ -267,20 +267,15 @@ function enhanceAnswerSections(root) {
   for (const heading of headings) {
     const definition = sectionNames.get(heading.textContent.trim().toLocaleLowerCase());
     const nextHeading = headings.find((candidate) => candidate.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_PRECEDING);
-    const section = document.createElement(definition.collapsible ? "details" : "section");
+    const section = document.createElement("section");
     section.className = `answer-section ${definition.className}`;
-    if (definition.collapsible) section.open = true;
-    const label = document.createElement(definition.collapsible ? "summary" : "span");
-    label.className = definition.collapsible ? "answer-details-toggle" : "answer-section-label";
+    const label = document.createElement("span");
+    label.className = "answer-section-label";
     label.textContent = definition.label;
-    const content = definition.collapsible ? document.createElement("div") : section;
-    if (definition.collapsible) content.className = "answer-details-content";
     heading.classList.add("answer-section-title");
     heading.before(section);
-    section.append(label);
-    if (definition.collapsible) section.append(content);
-    content.append(heading);
-    while (section.nextSibling && section.nextSibling !== nextHeading) content.append(section.nextSibling);
+    section.append(label, heading);
+    while (section.nextSibling && section.nextSibling !== nextHeading) section.append(section.nextSibling);
   }
 }
 
