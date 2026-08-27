@@ -275,10 +275,11 @@ function enhanceAnswerSections(root) {
     label.textContent = definition.label;
     const content = definition.collapsible ? document.createElement("div") : section;
     if (definition.collapsible) content.className = "answer-details-content";
+    heading.classList.add("answer-section-title");
     heading.before(section);
-    heading.remove();
     section.append(label);
     if (definition.collapsible) section.append(content);
+    content.append(heading);
     while (section.nextSibling && section.nextSibling !== nextHeading) content.append(section.nextSibling);
   }
 }

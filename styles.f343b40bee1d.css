@@ -393,12 +393,13 @@ input::placeholder { color: #000; opacity: .65; }
 .answer-summary { padding-left: 25px; border-left: 6px solid #50808E; background: #A3C9A8; box-shadow: 0 5px 12px rgba(0, 0, 0, .07); }
 .answer-details { overflow: hidden; padding: 0; }
 .answer-section-label { display: block; margin-bottom: 10px; font-size: 13px; font-weight: 850; letter-spacing: .04em; }
-.answer-details-toggle { display: flex; align-items: center; justify-content: space-between; padding: 17px 22px; background: #A3C9A8; cursor: pointer; font-size: 13px; font-weight: 850; letter-spacing: .04em; list-style: none; }
+.answer-details-toggle { position: relative; display: flex; align-items: center; justify-content: center; padding: 17px 48px; background: #A3C9A8; cursor: pointer; font-size: 13px; font-weight: 850; letter-spacing: .04em; list-style: none; text-align: center; }
 .answer-details-toggle::-webkit-details-marker { display: none; }
-.answer-details-toggle::after { content: "+"; font-size: 18px; font-weight: 700; line-height: 1; }
+.answer-details-toggle::after { position: absolute; right: 22px; content: "+"; font-size: 18px; font-weight: 700; line-height: 1; }
 .answer-details[open] > .answer-details-toggle { border-bottom: 1px solid #69A297; }
 .answer-details[open] > .answer-details-toggle::after { content: "−"; }
 .answer-details-content { padding: 20px 22px; }
+.markdown-content .answer-section-title { margin: 0 0 12px; padding: 0; border: 0; font-size: 19px; letter-spacing: -.015em; }
 .answer-section > :last-child { margin-bottom: 0; }
 .meta { margin-top: 10px; padding-top: 9px; }
 .entry-details { display: flex; justify-content: space-between; gap: 18px; margin-top: 10px; padding-top: 8px; border-top: 1px solid #69A297; color: #000; font-size: 11px; line-height: 1.4; }
