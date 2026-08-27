@@ -253,6 +253,32 @@ function renderMermaid(root = document) {
     });
 }
 
+function enhanceAnswerSections(root) {
+  const sectionNames = new Map([
+    ["short answer", { className: "answer-summary", label: "SUMMARY" }],
+    ["short answers", { className: "answer-summary", label: "SUMMARY" }],
+    ["full answer", { className: "answer-details", label: "DETAILS" }],
+    ["full answers", { className: "answer-details", label: "DETAILS" }]
+  ]);
+  const headings = [...root.children].filter((element) =>
+    /^H[1-6]$/.test(element.tagName) && sectionNames.has(element.textContent.trim().toLocaleLowerCase())
+  );
+
+  for (const heading of headings) {
+    const definition = sectionNames.get(heading.textContent.trim().toLocaleLowerCase());
+    const nextHeading = headings.find((candidate) => candidate.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_PRECEDING);
+    const section = document.createElement("section");
+    section.className = `answer-section ${definition.className}`;
+    const label = document.createElement("span");
+    label.className = "answer-section-label";
+    label.textContent = definition.label;
+    heading.classList.add("answer-section-title");
+    heading.before(section);
+    section.append(label, heading);
+    while (section.nextSibling && section.nextSibling !== nextHeading) section.append(section.nextSibling);
+  }
+}
+
 async function copyCode(text, button) {
   try {
     if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(text);
@@ -309,6 +335,7 @@ function codeLanguageLabel(code) {
 }
 
 function enhanceContent(root = document) {
+  if (root.classList?.contains("answer-content")) enhanceAnswerSections(root);
   renderMath(root);
   renderMermaid(root);
   root.querySelectorAll("a").forEach((link) => {
