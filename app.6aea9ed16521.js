@@ -22,7 +22,9 @@ const mermaidPromise = import("https://cdn.jsdelivr.net/npm/mermaid@11.17.0/dist
       secondaryColor: "#A3C9A8",
       tertiaryColor: "#DDD8C4",
       lineColor: "#50808E",
-      textColor: "#000000"
+      textColor: "#000000",
+      fontSize: "16px",
+      fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
     }
   });
   return mermaid;
@@ -364,7 +366,10 @@ function enhanceContent(root = document) {
   root.querySelectorAll("img").forEach((image) => {
     const source = image.getAttribute("src") || "";
     const assetMatch = source.match(/^(?:\.\.\/){1,2}(Assets\/images\/.*)$/);
-    if (assetMatch) image.src = new URL(`./${assetMatch[1]}`, document.baseURI).href;
+    if (assetMatch) {
+      const localPrefix = window.location.pathname.includes("/Frontend/") ? "../" : "./";
+      image.src = new URL(`${localPrefix}${assetMatch[1]}`, document.baseURI).href;
+    }
     image.loading = "lazy";
     image.decoding = "async";
   });
@@ -416,6 +421,12 @@ function formatUtcDate(value) {
     : timestamp.toISOString().slice(0, 10);
 }
 
+function cacheLocalAnswer(item) {
+  if (answerCache.has(item.id) || typeof item.answer !== "string") return false;
+  answerCache.set(item.id, item.answer);
+  return true;
+}
+
 async function loadAnswer(card, item) {
   const content = card.querySelector(".answer-content");
   if (answerCache.has(item.id)) {
@@ -438,6 +449,12 @@ async function loadAnswer(card, item) {
     content.innerHTML = renderMarkdown(payload.answer_markdown);
     enhanceContent(content);
   } catch (error) {
+    if (cacheLocalAnswer(item)) {
+      content.innerHTML = renderMarkdown(answerCache.get(item.id));
+      enhanceContent(content);
+      console.warn(`Loaded local fallback answer for ${item.id}:`, error);
+      return;
+    }
     content.innerHTML = `<p class="answer-status">Answer could not be loaded. Close and reopen to retry.</p>`;
     console.error(`Failed to load answer ${item.id}:`, error);
   }
@@ -453,14 +470,18 @@ async function preloadAnswers(records) {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const payload = await response.json();
     for (const [id, answer] of Object.entries(payload.entries)) answerCache.set(id, answer.answer_markdown);
+    records.forEach(cacheLocalAnswer);
   })();
   if (request) newIds.forEach((id) => answerPromises.set(id, request));
   try {
     await Promise.all([...new Set(ids.map((id) => answerPromises.get(id)).filter(Boolean))]);
     return records.every((record) => answerCache.has(record.id));
   } catch (error) {
-    console.error("Failed to preload page answers:", error);
-    return false;
+    let usedLocalFallback = false;
+    records.forEach((record) => { usedLocalFallback = cacheLocalAnswer(record) || usedLocalFallback; });
+    if (usedLocalFallback) console.warn("Remote page answers could not be preloaded; using local answers.", error);
+    else console.error("Failed to preload page answers:", error);
+    return records.every((record) => answerCache.has(record.id));
   } finally {
     if (request) newIds.forEach((id) => { if (answerPromises.get(id) === request) answerPromises.delete(id); });
   }
