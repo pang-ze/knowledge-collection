@@ -290,11 +290,28 @@ function enhanceAnswerSections(root) {
     const definition = sectionNames.get(name);
     const section = document.createElement("section");
     section.className = `answer-section ${definition.className}`;
-    const label = document.createElement("span");
+    const label = document.createElement(name === "details" ? "button" : "span");
     label.className = "answer-section-label";
-    label.textContent = definition.label;
     heading.classList.add("answer-section-title");
-    section.append(label, ...nodes);
+    if (name === "details") {
+      const content = document.createElement("div");
+      content.className = "answer-details-content";
+      content.append(...nodes);
+      label.type = "button";
+      label.classList.add("answer-details-toggle");
+      label.setAttribute("aria-expanded", "false");
+      label.innerHTML = `${definition.label}<span aria-hidden="true">⌄</span>`;
+      section.classList.add("is-collapsed");
+      label.addEventListener("click", () => {
+        const expanded = section.classList.toggle("is-collapsed") === false;
+        label.setAttribute("aria-expanded", String(expanded));
+        label.querySelector("span").textContent = expanded ? "⌃" : "⌄";
+      });
+      section.append(label, content);
+    } else {
+      label.textContent = definition.label;
+      section.append(label, ...nodes);
+    }
     insertionPoint.parentNode.insertBefore(section, insertionPoint);
   }
   insertionPoint.remove();
