@@ -125,7 +125,7 @@ h3 { margin-bottom: 0; font-size: 17px; }
 .markdown-content blockquote p { margin: 0; }
 .markdown-content ul, .markdown-content ol { margin: 12px 0; padding-left: 25px; }
 .markdown-content li + li { margin-top: 5px; }
-.markdown-content :not(pre) > code { padding: 2px 6px; border: 1px solid #50808E; border-radius: 6px; background: #50808E; color: #50808E; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.markdown-content :not(pre) > code { position: relative; top: -1px; padding: 2px 6px; border: 1px solid #50808E; border-radius: 6px; background: #50808E; color: #50808E; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
 .markdown-content table { display: block; width: max-content; max-width: 100%; overflow-x: auto; margin: 16px 0; border-collapse: separate; border-spacing: 0; border: 1px solid var(--line); border-radius: 10px; }
 .markdown-content th, .markdown-content td { padding: 9px 12px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
 .markdown-content tr:last-child td { border-bottom: 0; }
