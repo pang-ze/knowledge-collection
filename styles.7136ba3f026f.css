@@ -68,11 +68,12 @@ h3 { margin-bottom: 0; font-size: 17px; }
 .taxonomy-label strong { font-size: 13px; letter-spacing: -.01em; }
 .taxonomy-label span { color: var(--muted); font-size: 10px; font-weight: 650; text-transform: uppercase; letter-spacing: .08em; }
 .taxonomy-label .zh-taxonomy { font-size: 12px; text-transform: none; }
-.taxonomy-options { display: flex; max-height: 120px; overflow-y: auto; flex-wrap: wrap; align-content: center; gap: 7px; padding: 3px 5px 3px 0; scrollbar-gutter: stable; }
+.taxonomy-options { display: flex; max-height: 120px; overflow-y: auto; overflow-anchor: none; flex-wrap: wrap; align-content: flex-start; gap: 7px; padding: 3px 5px 3px 0; scrollbar-gutter: stable; }
 .taxonomy-options::-webkit-scrollbar { width: 6px; }
 .taxonomy-options::-webkit-scrollbar-thumb { border-radius: 10px; background: #50808E; }
 .tag-button, .tag { padding: 6px 10px; border: 1px solid #50808E; border-radius: 999px; background: #DDD8C4; color: #50808E; font-size: 11px; font-weight: 750; }
 .tag-button { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; transition: border-color .16s, background .16s, color .16s, transform .16s; }
+.tag-overflow[hidden] { display: none !important; }
 .tag-button strong { min-width: 19px; padding: 1px 5px; border-radius: 999px; background: #50808E; color: #50808E; font-size: 9px; text-align: center; }
 .tag-domains, .tag-topics { border-color: #50808E; background: #50808E; color: #50808E; }
 .tag-concepts { border-color: #50808E; background: #50808E; color: #50808E; }

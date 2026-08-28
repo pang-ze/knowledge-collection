@@ -117,12 +117,8 @@ function availableTags(dimension) {
     return result;
   }, new Map());
   selected[dimension].forEach((key) => { if (!counts.has(key)) counts.set(key, 0); });
-  const query = normalizeSearchText(tagQuery);
-  const candidates = query
-    ? Object.keys(taxonomy).filter((key) => dimensionByType[taxonomy[key].instance_of] === dimension).map((key) => [key, counts.get(key) || 0])
-    : [...counts];
-  return candidates
-    .filter(([key, count]) => (count > 0 || selected[dimension].has(key)) && (!query || searchText(key).includes(query)))
+  return [...counts]
+    .filter(([key, count]) => count > 0 || selected[dimension].has(key))
     .sort(([a, countA], [b, countB]) => countB - countA || displayName(a).localeCompare(displayName(b)));
 }
 
@@ -147,11 +143,12 @@ function renderFilters() {
   const ids = { domains: "domain-filter", topics: "topic-filter", concepts: "concept-filter", keywords: "keyword-filter", impacts: "impact-filter", publications: "publication-filter", difficulties: "difficulty-filter" };
   for (const dimension of dimensions) {
     const tags = availableTags(dimension);
-    const visibleTags = tagQuery || expandedDimensions.has(dimension) ? tags : tags.slice(0, TAG_PREVIEW_LIMIT);
-    const tagMarkup = visibleTags.map(([key, count]) => {
+    const showAllTags = Boolean(tagQuery) || expandedDimensions.has(dimension);
+    const tagMarkup = tags.map(([key, count], index) => {
       const tag = taxonomy[key];
       const alternate = [tag.name_zh, tag.name_en].filter((name) => name && name !== displayName(key)).join(" · ");
-      return `<button class="tag-button tag-${dimension} ${selected[dimension].has(key) ? "selected" : ""}" data-dimension="${dimension}" data-key="${escapeHtml(key)}" type="button" title="${escapeHtml(alternate)}"><span>${escapeHtml(displayName(key))}</span><strong>${count}</strong></button>`;
+      const isOverflow = index >= TAG_PREVIEW_LIMIT && !selected[dimension].has(key);
+      return `<button class="tag-button tag-${dimension} ${selected[dimension].has(key) ? "selected" : ""} ${isOverflow ? "tag-overflow" : ""}" data-dimension="${dimension}" data-key="${escapeHtml(key)}" type="button" title="${escapeHtml(alternate)}" ${isOverflow && !showAllTags ? "hidden" : ""}><span>${escapeHtml(displayName(key))}</span><strong>${count}</strong></button>`;
     }).join("");
     const expandMarkup = !tagQuery && tags.length > TAG_PREVIEW_LIMIT ? `<button class="tag-expand text-button" data-expand="${dimension}" type="button">${expandedDimensions.has(dimension) ? "Collapse" : `Show all ${tags.length}`}</button>` : "";
     const row = document.querySelector(`[data-taxonomy-row="${dimension}"]`);
@@ -171,8 +168,14 @@ function renderFilters() {
     render();
   }));
   document.querySelectorAll(".tag-expand").forEach((button) => button.addEventListener("click", () => {
-    expandedDimensions.has(button.dataset.expand) ? expandedDimensions.delete(button.dataset.expand) : expandedDimensions.add(button.dataset.expand);
-    renderFilters();
+    const dimension = button.dataset.expand;
+    const expanded = !expandedDimensions.has(dimension);
+    expanded ? expandedDimensions.add(dimension) : expandedDimensions.delete(dimension);
+    const container = byId(ids[dimension]);
+    container.querySelectorAll(".tag-overflow").forEach((tag) => { tag.hidden = !expanded; });
+    container.scrollTop = 0;
+    requestAnimationFrame(() => { container.scrollTop = 0; });
+    button.textContent = expanded ? "Collapse" : `Show all ${availableTags(dimension).length}`;
   }));
 }
 
