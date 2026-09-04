@@ -429,14 +429,9 @@ async function fetchWithTimeout(url, timeoutMs = 8000) {
   finally { clearTimeout(timeout); }
 }
 
-function referenceLabel(reference) {
-  if (reference.comment) return reference.comment;
-  try { return new URL(reference.url).hostname; } catch { return reference.url; }
-}
-
 function renderResources(item) {
   const related = item.related_entries.length ? `<div class="resource-group related-group"><h3>Related Entries</h3><ul>${item.related_entries.map((relation) => `<li><div class="related-link" role="link" tabindex="0" data-url="${escapeHtml(relation.url)}"><span class="collection-badge">${escapeHtml(relation.collection)}</span><div class="related-question markdown-content">${renderMarkdown(relation.question)}</div><span aria-hidden="true">↗</span></div>${relation.comment ? `<small>${escapeHtml(relation.comment)}</small>` : ""}</li>`).join("")}</ul></div>` : "";
-  const references = item.references.length ? `<div class="resource-group reference-group"><h3>References</h3><ul>${item.references.map((reference) => `<li><a href="${escapeHtml(reference.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(reference.title || referenceLabel(reference))} <span aria-hidden="true">↗</span></a>${reference.comment ? `<small>${escapeHtml(reference.comment)}</small>` : ""}</li>`).join("")}</ul></div>` : "";
+  const references = item.references.length ? `<div class="resource-group reference-group"><h3>References</h3><ul>${item.references.map((reference) => `<li><a href="${escapeHtml(reference.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(reference.url)} <span aria-hidden="true">↗</span></a></li>`).join("")}</ul></div>` : "";
   return related || references ? `<section class="qa-resources combined-resources">${related}${references}</section>` : "";
 }
 
