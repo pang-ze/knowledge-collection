@@ -280,7 +280,7 @@ const knowledge = window.KNOWLEDGE_DATA;
 const { renderMarkdown, enhanceContent } = window.KnowledgeMarkdown;
 const qaData = knowledge.index.records;
 const taxonomy = knowledge.taxonomy.tags;
-const collections = knowledge.index.collections;
+const collectionNames = knowledge.index.collection;
 const PAGE_SIZE = 10;
 const TAG_PREVIEW_LIMIT = 10;
 const TAG_LANGUAGE_STORAGE_KEY = "knowledge-tag-language-v3";
@@ -385,7 +385,7 @@ function renderFilters() {
     const expandMarkup = !tagQuery && tags.length > TAG_PREVIEW_LIMIT ? `<button class="tag-expand text-button" data-expand="${dimension}" type="button">${expandedDimensions.has(dimension) ? "Collapse" : `Show all ${tags.length}`}</button>` : "";
     const row = document.querySelector(`[data-taxonomy-row="${dimension}"]`);
     const definition = definitions.find((item) => item.key === dimension);
-    row.hidden = definition.collections !== "all" && !definition.collections.includes(selectedCollection);
+    row.hidden = definition.collection !== "all" && !definition.collection.includes(selectedCollection);
     byId(ids[dimension]).innerHTML = tags.length
       ? tagMarkup + expandMarkup
       : `<span class="no-match">${tagQuery ? "No matching tags." : "No tags in this collection."}</span>`;
@@ -409,7 +409,7 @@ function renderFilters() {
 }
 
 function renderCollectionFilter() {
-  const options = ["All", ...collections];
+  const options = ["All", ...collectionNames];
   byId("collection-filter").innerHTML = options.map((collection) => {
     const count = collection === "All" ? qaData.length : qaData.filter((record) => record.collection === collection).length;
     return `<button class="collection-button ${selectedCollection === collection ? "selected" : ""}" type="button" data-collection="${collection}"><span>${collection}</span><strong>${count}</strong></button>`;
@@ -616,7 +616,7 @@ byId("clear-filter").addEventListener("click", () => {
 });
 const urlParameters = new URLSearchParams(window.location.search);
 const collectionParameter = urlParameters.get("collection");
-if (collectionParameter && collections.includes(collectionParameter)) selectedCollection = collectionParameter;
+if (collectionParameter && collectionNames.includes(collectionParameter)) selectedCollection = collectionParameter;
 for (const [dimension, parameter] of Object.entries(parameterByDimension)) {
   const key = urlParameters.get(parameter) || urlParameters.get(legacyParameterByDimension[dimension]);
   if (key && taxonomy[key] && dimensionByType[taxonomy[key].instance_of] === dimension) selected[dimension].add(key);
