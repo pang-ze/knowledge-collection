@@ -226,6 +226,13 @@ function codeLanguageLabel(code) {
   return labels[language] || language.replace(/(^|-)([a-z])/g, (_, separator, letter) => `${separator}${letter.toUpperCase()}`);
 }
 
+function resolveImageSource(source, baseUri, pathname) {
+  const match = source.match(/^(?:(?:\.\.?\/)+|\/)?(?:Data\/Images\/webp|Images\/webp|Assets\/images)\/(.+)$/);
+  if (!match) return source;
+  const prefix = pathname.includes("/Frontend/") ? "../" : "./";
+  return new URL(`${prefix}Data/Images/webp/${match[1]}`, baseUri).href;
+}
+
 function enhanceContent(root = document) {
   if (root.classList?.contains("answer-content")) enhanceAnswerSections(root);
   renderMath(root);
@@ -236,11 +243,7 @@ function enhanceContent(root = document) {
   });
   root.querySelectorAll("img").forEach((image) => {
     const source = image.getAttribute("src") || "";
-    const assetMatch = source.match(/^(?:\.\.\/){1,2}(Assets\/images\/.*)$/);
-    if (assetMatch) {
-      const localPrefix = window.location.pathname.includes("/Frontend/") ? "../" : "./";
-      image.src = new URL(`${localPrefix}${assetMatch[1]}`, document.baseURI).href;
-    }
+    image.src = resolveImageSource(source, document.baseURI, window.location.pathname);
     image.loading = "lazy";
     image.decoding = "async";
   });
