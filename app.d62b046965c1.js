@@ -1,15 +1,6 @@
-const knowledge = window.KNOWLEDGE_DATA;
-const qaData = knowledge.index.records;
-const taxonomy = knowledge.taxonomy.tags;
-const collections = knowledge.index.collections;
-const PAGE_SIZE = 10;
-const TAG_PREVIEW_LIMIT = 10;
-const TAG_LANGUAGE_STORAGE_KEY = "knowledge-tag-language-v3";
-const dimensions = ["domains", "topics", "concepts", "keywords", "impacts", "publications", "difficulties"];
-const dimensionByType = { domain: "domains", topic: "topics", concept: "concepts", keyword: "keywords", impact: "impacts", publication: "publications", difficulty: "difficulties" };
-const parameterByDimension = { domains: "domain", topics: "topic", concepts: "concept", keywords: "keyword", impacts: "impact", publications: "publication", difficulties: "difficulty" };
-const legacyParameterByDimension = { keywords: "technology" };
-const ANSWER_API_BASE = "https://learning-notes-api.pang-ze.workers.dev";
+/* Markdown, math, diagrams and code enhancement, shared by questions and answers. */
+(() => {
+const escapeHtml = (value) => String(value).replace(/[&<>"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[character]);
 const mermaidPromise = import("https://cdn.jsdelivr.net/npm/mermaid@11.17.0/dist/mermaid.esm.min.mjs").then(({ default: mermaid }) => {
   mermaid.initialize({
     startOnLoad: false,
@@ -30,19 +21,6 @@ const mermaidPromise = import("https://cdn.jsdelivr.net/npm/mermaid@11.17.0/dist
   return mermaid;
 });
 let mermaidRenderQueue = Promise.resolve();
-const answerCache = new Map();
-const answerPromises = new Map();
-const selected = Object.fromEntries(dimensions.map((dimension) => [dimension, new Set()]));
-const expandedDimensions = new Set();
-let tagQuery = "";
-let tagLanguage = loadTagLanguage();
-let selectedCollection = "All";
-let currentPage = 1;
-let renderVersion = 0;
-let requestedQaOpened = false;
-
-const byId = (id) => document.getElementById(id);
-const escapeHtml = (value) => String(value).replace(/[&<>"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[character]);
 
 if (window.marked) {
   window.marked.use({
@@ -72,126 +50,6 @@ if (window.marked) {
   });
 }
 
-function normalizeSearchText(value) {
-  return String(value).toLocaleLowerCase().replace(/-+/g, " ").replace(/\s+/g, " ").trim();
-}
-
-function searchText(key) {
-  const tag = taxonomy[key];
-  return normalizeSearchText([key, tag.name_zh, tag.name_en, ...tag.aliases].filter(Boolean).join(" "));
-}
-
-function loadTagLanguage() {
-  try { return localStorage.getItem(TAG_LANGUAGE_STORAGE_KEY) === "zh" ? "zh" : "en"; }
-  catch { return "en"; }
-}
-
-function saveTagLanguage() {
-  try { localStorage.setItem(TAG_LANGUAGE_STORAGE_KEY, tagLanguage); }
-  catch { /* Storage can be unavailable in privacy-restricted contexts. */ }
-}
-
-function displayName(key) {
-  const tag = taxonomy[key];
-  return tagLanguage === "zh"
-    ? tag.name_zh || tag.name_en || key
-    : tag.name_en || key;
-}
-
-function renderTagLanguageControl() {
-  document.querySelectorAll("[data-tag-language]").forEach((button) => {
-    const active = button.dataset.tagLanguage === tagLanguage;
-    button.classList.toggle("selected", active);
-    button.setAttribute("aria-pressed", String(active));
-  });
-}
-
-function matchesSelections(record) {
-  return (selectedCollection === "All" || record.collection === selectedCollection)
-    && dimensions.every((dimension) => selected[dimension].size === 0 || [...selected[dimension]].some((key) => record.tag_dimensions[dimension].includes(key)));
-}
-
-function availableTags(dimension) {
-  const counts = filteredRecords().flatMap((record) => record.tag_dimensions[dimension]).reduce((result, key) => {
-    result.set(key, (result.get(key) || 0) + 1);
-    return result;
-  }, new Map());
-  selected[dimension].forEach((key) => { if (!counts.has(key)) counts.set(key, 0); });
-  return [...counts]
-    .filter(([key, count]) => count > 0 || selected[dimension].has(key))
-    .sort(([a, countA], [b, countB]) => countB - countA || displayName(a).localeCompare(displayName(b)));
-}
-
-function filteredRecords() {
-  const query = normalizeSearchText(tagQuery);
-  return qaData
-    .filter((record) => matchesSelections(record))
-    .filter((record) => !query
-      || normalizeSearchText(record.id).includes(query)
-      || normalizeSearchText(record.question).includes(query)
-      || dimensions.some((dimension) => record.tag_dimensions[dimension].some((key) => searchText(key).includes(query))))
-    .sort((a, b) => {
-      const frequentDifference = Number(b.is_frequent) - Number(a.is_frequent);
-      if (frequentDifference) return frequentDifference;
-      const modifiedA = Date.parse(a.modified_at);
-      const modifiedB = Date.parse(b.modified_at);
-      return (Number.isNaN(modifiedB) ? 0 : modifiedB) - (Number.isNaN(modifiedA) ? 0 : modifiedA);
-    });
-}
-
-function renderFilters() {
-  const ids = { domains: "domain-filter", topics: "topic-filter", concepts: "concept-filter", keywords: "keyword-filter", impacts: "impact-filter", publications: "publication-filter", difficulties: "difficulty-filter" };
-  for (const dimension of dimensions) {
-    const tags = availableTags(dimension);
-    const showAllTags = Boolean(tagQuery) || expandedDimensions.has(dimension);
-    const tagMarkup = tags.map(([key, count], index) => {
-      const tag = taxonomy[key];
-      const alternate = [tag.name_zh, tag.name_en].filter((name) => name && name !== displayName(key)).join(" · ");
-      const isOverflow = index >= TAG_PREVIEW_LIMIT && !selected[dimension].has(key);
-      return `<button class="tag-button tag-${dimension} ${selected[dimension].has(key) ? "selected" : ""} ${isOverflow ? "tag-overflow" : ""}" data-dimension="${dimension}" data-key="${escapeHtml(key)}" type="button" title="${escapeHtml(alternate)}" ${isOverflow && !showAllTags ? "hidden" : ""}><span>${escapeHtml(displayName(key))}</span><strong>${count}</strong></button>`;
-    }).join("");
-    const expandMarkup = !tagQuery && tags.length > TAG_PREVIEW_LIMIT ? `<button class="tag-expand text-button" data-expand="${dimension}" type="button">${expandedDimensions.has(dimension) ? "Collapse" : `Show all ${tags.length}`}</button>` : "";
-    const row = document.querySelector(`[data-taxonomy-row="${dimension}"]`);
-    const isCoreDimension = ["domains", "topics", "concepts", "keywords"].includes(dimension);
-    const isCollectionSpecificDimension = (dimension === "publications" && selectedCollection === "Papers")
-      || (dimension === "difficulties" && selectedCollection === "Coding")
-      || (dimension === "impacts" && ["Papers", "Repositories"].includes(selectedCollection));
-    row.hidden = !isCoreDimension && !isCollectionSpecificDimension;
-    byId(ids[dimension]).innerHTML = tags.length
-      ? tagMarkup + expandMarkup
-      : `<span class="no-match">${tagQuery ? "No matching tags." : "No tags in this collection."}</span>`;
-  }
-  document.querySelectorAll(".tag-button[data-dimension]").forEach((button) => button.addEventListener("click", () => {
-    const values = selected[button.dataset.dimension];
-    values.has(button.dataset.key) ? values.delete(button.dataset.key) : values.add(button.dataset.key);
-    currentPage = 1;
-    render();
-  }));
-  document.querySelectorAll(".tag-expand").forEach((button) => button.addEventListener("click", () => {
-    const dimension = button.dataset.expand;
-    const expanded = !expandedDimensions.has(dimension);
-    expanded ? expandedDimensions.add(dimension) : expandedDimensions.delete(dimension);
-    const container = byId(ids[dimension]);
-    container.querySelectorAll(".tag-overflow").forEach((tag) => { tag.hidden = !expanded; });
-    container.scrollTop = 0;
-    requestAnimationFrame(() => { container.scrollTop = 0; });
-    button.textContent = expanded ? "Collapse" : `Show all ${availableTags(dimension).length}`;
-  }));
-}
-
-function renderCollectionFilter() {
-  const options = ["All", ...collections];
-  byId("collection-filter").innerHTML = options.map((collection) => {
-    const count = collection === "All" ? qaData.length : qaData.filter((record) => record.collection === collection).length;
-    return `<button class="collection-button ${selectedCollection === collection ? "selected" : ""}" type="button" data-collection="${collection}"><span>${collection}</span><strong>${count}</strong></button>`;
-  }).join("");
-  document.querySelectorAll(".collection-button").forEach((button) => button.addEventListener("click", () => {
-    selectedCollection = button.dataset.collection;
-    dimensions.forEach((dimension) => selected[dimension].clear());
-    currentPage = 1;
-    render();
-  }));
-}
 
 function normalizeMarkdownEmphasis(markdown) {
   return String(markdown)
@@ -214,13 +72,6 @@ function renderMarkdown(markdown) {
   const normalizedMarkdown = normalizeMarkdownEmphasis(markdown);
   if (!window.marked || !window.DOMPurify) return `<p>${escapeHtml(normalizedMarkdown).replace(/\r?\n/g, "<br>")}</p>`;
   return window.DOMPurify.sanitize(window.marked.parse(normalizedMarkdown));
-}
-
-async function fetchWithTimeout(url, timeoutMs = 8000) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  try { return await fetch(url, { signal: controller.signal }); }
-  finally { clearTimeout(timeout); }
 }
 
 function renderMath(root = document) {
@@ -419,6 +270,163 @@ function enhanceContent(root = document) {
   });
 }
 
+
+window.KnowledgeMarkdown = { renderMarkdown, enhanceContent };
+})();
+
+const knowledge = window.KNOWLEDGE_DATA;
+const { renderMarkdown, enhanceContent } = window.KnowledgeMarkdown;
+const qaData = knowledge.index.records;
+const taxonomy = knowledge.taxonomy.tags;
+const collections = knowledge.index.collections;
+const PAGE_SIZE = 10;
+const TAG_PREVIEW_LIMIT = 10;
+const TAG_LANGUAGE_STORAGE_KEY = "knowledge-tag-language-v3";
+const definitions = knowledge.configuration.dimensions;
+const dimensions = definitions.map((item) => item.key);
+const dimensionByType = Object.fromEntries(definitions.map((item) => [item.type, item.key]));
+const parameterByDimension = Object.fromEntries(definitions.map((item) => [item.key, item.type]));
+const legacyParameterByDimension = Object.fromEntries(definitions.filter((item) => item.legacy_parameter).map((item) => [item.key, item.legacy_parameter]));
+const ANSWER_API_BASE = "https://learning-notes-api.pang-ze.workers.dev";
+const answerCache = new Map();
+const answerPromises = new Map();
+const selected = Object.fromEntries(dimensions.map((dimension) => [dimension, new Set()]));
+const expandedDimensions = new Set();
+let tagQuery = "";
+let tagLanguage = loadTagLanguage();
+let selectedCollection = "All";
+let currentPage = 1;
+let renderVersion = 0;
+let requestedQaOpened = false;
+
+const byId = (id) => document.getElementById(id);
+const escapeHtml = (value) => String(value).replace(/[&<>"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[character]);
+
+function normalizeSearchText(value) {
+  return String(value).toLocaleLowerCase().replace(/-+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function searchText(key) {
+  const tag = taxonomy[key];
+  return normalizeSearchText([key, tag.name_zh, tag.name_en, ...tag.aliases].filter(Boolean).join(" "));
+}
+
+function loadTagLanguage() {
+  try { return localStorage.getItem(TAG_LANGUAGE_STORAGE_KEY) === "zh" ? "zh" : "en"; }
+  catch { return "en"; }
+}
+
+function saveTagLanguage() {
+  try { localStorage.setItem(TAG_LANGUAGE_STORAGE_KEY, tagLanguage); }
+  catch { /* Storage can be unavailable in privacy-restricted contexts. */ }
+}
+
+function displayName(key) {
+  const tag = taxonomy[key];
+  return tagLanguage === "zh"
+    ? tag.name_zh || tag.name_en || key
+    : tag.name_en || key;
+}
+
+function renderTagLanguageControl() {
+  document.querySelectorAll("[data-tag-language]").forEach((button) => {
+    const active = button.dataset.tagLanguage === tagLanguage;
+    button.classList.toggle("selected", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+}
+
+function matchesSelections(record) {
+  return (selectedCollection === "All" || record.collection === selectedCollection)
+    && dimensions.every((dimension) => selected[dimension].size === 0 || [...selected[dimension]].some((key) => record.tag_dimensions[dimension].includes(key)));
+}
+
+function availableTags(dimension) {
+  const counts = filteredRecords().flatMap((record) => record.tag_dimensions[dimension]).reduce((result, key) => {
+    result.set(key, (result.get(key) || 0) + 1);
+    return result;
+  }, new Map());
+  selected[dimension].forEach((key) => { if (!counts.has(key)) counts.set(key, 0); });
+  return [...counts]
+    .filter(([key, count]) => count > 0 || selected[dimension].has(key))
+    .sort(([a, countA], [b, countB]) => countB - countA || displayName(a).localeCompare(displayName(b)));
+}
+
+function filteredRecords() {
+  const query = normalizeSearchText(tagQuery);
+  return qaData
+    .filter((record) => matchesSelections(record))
+    .filter((record) => !query
+      || normalizeSearchText(record.id).includes(query)
+      || normalizeSearchText(record.question).includes(query)
+      || dimensions.some((dimension) => record.tag_dimensions[dimension].some((key) => searchText(key).includes(query))))
+    .sort((a, b) => {
+      const frequentDifference = Number(b.is_frequent) - Number(a.is_frequent);
+      if (frequentDifference) return frequentDifference;
+      const modifiedA = Date.parse(a.modified_at);
+      const modifiedB = Date.parse(b.modified_at);
+      return (Number.isNaN(modifiedB) ? 0 : modifiedB) - (Number.isNaN(modifiedA) ? 0 : modifiedA);
+    });
+}
+
+function renderFilters() {
+  const ids = Object.fromEntries(definitions.map((item) => [item.key, `${item.type}-filter`]));
+  for (const dimension of dimensions) {
+    const tags = availableTags(dimension);
+    const showAllTags = Boolean(tagQuery) || expandedDimensions.has(dimension);
+    const tagMarkup = tags.map(([key, count], index) => {
+      const tag = taxonomy[key];
+      const alternate = [tag.name_zh, tag.name_en].filter((name) => name && name !== displayName(key)).join(" · ");
+      const isOverflow = index >= TAG_PREVIEW_LIMIT && !selected[dimension].has(key);
+      return `<button class="tag-button tag-${dimension} ${selected[dimension].has(key) ? "selected" : ""} ${isOverflow ? "tag-overflow" : ""}" data-dimension="${dimension}" data-key="${escapeHtml(key)}" type="button" title="${escapeHtml(alternate)}" ${isOverflow && !showAllTags ? "hidden" : ""}><span>${escapeHtml(displayName(key))}</span><strong>${count}</strong></button>`;
+    }).join("");
+    const expandMarkup = !tagQuery && tags.length > TAG_PREVIEW_LIMIT ? `<button class="tag-expand text-button" data-expand="${dimension}" type="button">${expandedDimensions.has(dimension) ? "Collapse" : `Show all ${tags.length}`}</button>` : "";
+    const row = document.querySelector(`[data-taxonomy-row="${dimension}"]`);
+    const definition = definitions.find((item) => item.key === dimension);
+    row.hidden = definition.collections !== "all" && !definition.collections.includes(selectedCollection);
+    byId(ids[dimension]).innerHTML = tags.length
+      ? tagMarkup + expandMarkup
+      : `<span class="no-match">${tagQuery ? "No matching tags." : "No tags in this collection."}</span>`;
+  }
+  document.querySelectorAll(".tag-button[data-dimension]").forEach((button) => button.addEventListener("click", () => {
+    const values = selected[button.dataset.dimension];
+    values.has(button.dataset.key) ? values.delete(button.dataset.key) : values.add(button.dataset.key);
+    currentPage = 1;
+    render();
+  }));
+  document.querySelectorAll(".tag-expand").forEach((button) => button.addEventListener("click", () => {
+    const dimension = button.dataset.expand;
+    const expanded = !expandedDimensions.has(dimension);
+    expanded ? expandedDimensions.add(dimension) : expandedDimensions.delete(dimension);
+    const container = byId(ids[dimension]);
+    container.querySelectorAll(".tag-overflow").forEach((tag) => { tag.hidden = !expanded; });
+    container.scrollTop = 0;
+    requestAnimationFrame(() => { container.scrollTop = 0; });
+    button.textContent = expanded ? "Collapse" : `Show all ${availableTags(dimension).length}`;
+  }));
+}
+
+function renderCollectionFilter() {
+  const options = ["All", ...collections];
+  byId("collection-filter").innerHTML = options.map((collection) => {
+    const count = collection === "All" ? qaData.length : qaData.filter((record) => record.collection === collection).length;
+    return `<button class="collection-button ${selectedCollection === collection ? "selected" : ""}" type="button" data-collection="${collection}"><span>${collection}</span><strong>${count}</strong></button>`;
+  }).join("");
+  document.querySelectorAll(".collection-button").forEach((button) => button.addEventListener("click", () => {
+    selectedCollection = button.dataset.collection;
+    dimensions.forEach((dimension) => selected[dimension].clear());
+    currentPage = 1;
+    render();
+  }));
+}
+
+async function fetchWithTimeout(url, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try { return await fetch(url, { signal: controller.signal }); }
+  finally { clearTimeout(timeout); }
+}
+
 function referenceLabel(reference) {
   if (reference.comment) return reference.comment;
   try { return new URL(reference.url).hostname; } catch { return reference.url; }
@@ -581,6 +589,9 @@ async function render() {
   }
 }
 
+document.querySelector(".taxonomy-filters").innerHTML = definitions.map((item) =>
+  `<div class="taxonomy-row" data-taxonomy-row="${item.key}"><div class="taxonomy-label"><strong>${escapeHtml(item.label)}</strong><span class="zh-taxonomy">${escapeHtml(item.name_zh)}</span></div><div id="${item.type}-filter" class="taxonomy-options"></div></div>`
+).join("");
 byId("record-count").textContent = qaData.length;
 document.querySelectorAll("[data-tag-language]").forEach((button) => button.addEventListener("click", () => {
   if (tagLanguage === button.dataset.tagLanguage) return;
