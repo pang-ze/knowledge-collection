@@ -155,12 +155,11 @@ function enhanceAnswerSections(root) {
       label.type = "button";
       label.classList.add("answer-details-toggle");
       label.setAttribute("aria-expanded", "false");
-      label.innerHTML = `${definition.label}<span aria-hidden="true">⌄</span>`;
+      label.innerHTML = `${definition.label}<svg class="details-chevron" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
       section.classList.add("is-collapsed");
       label.addEventListener("click", () => {
         const expanded = section.classList.toggle("is-collapsed") === false;
         label.setAttribute("aria-expanded", String(expanded));
-        label.querySelector("span").textContent = expanded ? "⌃" : "⌄";
       });
       section.append(label, content);
     } else {
