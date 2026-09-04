@@ -1,12 +1,9 @@
 # Knowledge Collection
 
-此仓库由私有仓库自动生成，请勿手动修改发布文件。
+Knowledge Collection 是一个面向学习、查找与探索的知识库，集中整理 Questions、Papers、Articles、Coding 和 Repositories 等多种类型的内容。
 
-- Frontend/：页面、样式与脚本。
-- Data/Index/：公开问题与标签等索引，不含答案正文。
-- Data/Images/webp/：网站引用的图片。
-- Assets/images/：旧图片链接兼容副本。
-- index.html：保留原网站根路径入口，与 Frontend/index.html 展示相同页面。
-- .github/workflows/：GitHub Pages 发布配置，由同步流程保留。
+你可以在网页中浏览知识条目，通过 Collection 与标签筛选内容，搜索问题和主题，并点开条目查看完整回答、关联内容与参考资料。
 
-答案从 Cloudflare API 获取；不发布知识 Markdown、原图、Obsidian 配置或私有构建产物。
+## 访问 Knowledge Collection
+
+### [打开 Knowledge Collection 网页](https://pang-ze.github.io/knowledge-collection/)
