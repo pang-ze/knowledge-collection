@@ -361,8 +361,10 @@ input::placeholder { color: #000; opacity: .65; }
 .markdown-content .answer-section-title { display: none; }
 .answer-section > :last-child { margin-bottom: 0; }
 .meta { margin-top: 10px; padding-top: 9px; }
-.entry-details { display: flex; justify-content: space-between; gap: 18px; margin-top: 10px; padding-top: 8px; border-top: 1px solid #69A297; color: #000; font-size: 11px; line-height: 1.4; }
-.entry-details span:last-child { margin-left: auto; text-align: right; }
+.entry-details { display: grid; grid-template-columns: minmax(max-content, 1fr) max-content minmax(max-content, 1fr); align-items: baseline; gap: 18px; margin-top: 10px; padding-top: 8px; border-top: 1px solid #69A297; color: #000; font-size: 11px; line-height: 1.4; white-space: nowrap; overflow-x: auto; }
+.entry-details .entry-author { justify-self: start; }
+.entry-details .entry-id { justify-self: center; text-align: center; }
+.entry-details .entry-created { justify-self: end; text-align: right; }
 .hero > div > .eyebrow { font-size: 14px; font-weight: 850; }
 .hero .zh-subtitle { font-size: 21px; font-weight: 700; }
 section[aria-labelledby="questions-heading"] .section-heading { margin-bottom: 14px; }
@@ -371,8 +373,7 @@ section[aria-labelledby="questions-heading"] .section-heading { margin-bottom: 1
   .collection-toolbar { flex-wrap: wrap; }
   .collection-toolbar .collection-filter { flex-basis: 100%; }
   .collection-toolbar .tag-language-control { margin-left: auto; }
-  .entry-details { align-items: flex-start; flex-direction: column; gap: 3px; }
-  .entry-details span:last-child { margin-left: 0; text-align: left; }
+  .entry-details { column-gap: 12px; }
   .answer-section { padding: 17px 16px; }
   .answer-summary { padding-left: 19px; }
   .answer-details { padding-top: 27px; }
