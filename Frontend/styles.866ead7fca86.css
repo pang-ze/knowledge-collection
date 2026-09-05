@@ -281,12 +281,12 @@ body {
 .search-field input, .search-field input:hover, .search-field input:focus { border-color: #69A297; background: #DDD8C4; }
 .search-field input:focus { box-shadow: 0 0 0 3px #A3C9A8; }
 .taxonomy-filters { border: 0; background: transparent; }
-.taxonomy-row, .taxonomy-row[data-taxonomy-row="domains"], .taxonomy-row[data-taxonomy-row="topics"], .taxonomy-row[data-taxonomy-row="keywords"] { border-color: #69A297; background: #84B59F; }
-.taxonomy-row[data-taxonomy-row="concepts"], .taxonomy-row[data-taxonomy-row="impacts"], .taxonomy-row[data-taxonomy-row="publications"], .taxonomy-row[data-taxonomy-row="difficulties"] { background: #A3C9A8; }
+.taxonomy-row, .taxonomy-row[data-taxonomy-row="topics"], .taxonomy-row[data-taxonomy-row="keywords"], .taxonomy-row[data-taxonomy-row="publications"] { border-color: #69A297; background: #84B59F; }
+.taxonomy-row[data-taxonomy-row="domains"], .taxonomy-row[data-taxonomy-row="concepts"], .taxonomy-row[data-taxonomy-row="impacts"], .taxonomy-row[data-taxonomy-row="difficulties"] { background: #A3C9A8; }
 .taxonomy-label { border-color: #69A297; }
 .tag-button, .tag { border-color: #69A297; background: #DDD8C4; }
-.tag-domains, .tag-topics, .tag-keywords { background: #84B59F; }
-.tag-concepts, .tag-impacts, .tag-publications, .tag-difficulties { background: #A3C9A8; }
+.tag-topics, .tag-keywords, .tag-publications { background: #84B59F; }
+.tag-domains, .tag-concepts, .tag-impacts, .tag-difficulties { background: #A3C9A8; }
 .tag-button:hover { border-color: #50808E; background: #A3C9A8; }
 .tag-button.selected { border-color: #50808E; background: #69A297; box-shadow: none; }
 .tag-button.selected strong { background: #DDD8C4; }
@@ -333,7 +333,9 @@ input::placeholder { color: #000; opacity: .65; }
 
 /* Related entries and references share one resource surface. */
 .combined-resources { display: grid; gap: 0; }
-.resource-group { min-width: 0; }
+.resource-group { min-width: 0; max-width: 100%; }
+.qa-resources ul, .qa-resources li { min-width: 0; max-width: 100%; }
+.qa-resources a { display: inline-block; max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }
 .resource-group + .resource-group { margin-top: 16px; padding-top: 16px; border-top: 1px solid #50808E; }
 .markdown-content pre { padding-top: 52px; background: #A3C9A8; color: #000; }
 .markdown-content pre::before { display: none; }
