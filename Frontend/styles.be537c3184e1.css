@@ -281,12 +281,12 @@ body {
 .search-field input, .search-field input:hover, .search-field input:focus { border-color: #69A297; background: #DDD8C4; }
 .search-field input:focus { box-shadow: 0 0 0 3px #A3C9A8; }
 .taxonomy-filters { border: 0; background: transparent; }
-.taxonomy-row, .taxonomy-row[data-taxonomy-row="topics"], .taxonomy-row[data-taxonomy-row="keywords"], .taxonomy-row[data-taxonomy-row="publications"] { border-color: #69A297; background: #84B59F; }
-.taxonomy-row[data-taxonomy-row="domains"], .taxonomy-row[data-taxonomy-row="concepts"], .taxonomy-row[data-taxonomy-row="impacts"], .taxonomy-row[data-taxonomy-row="difficulties"] { background: #A3C9A8; }
+.taxonomy-row, .taxonomy-row[data-taxonomy-row="topics"], .taxonomy-row[data-taxonomy-row="keywords"], .taxonomy-row[data-taxonomy-row="publications"] { border-color: #69A297; background: #A3C9A8; }
+.taxonomy-row[data-taxonomy-row="domains"], .taxonomy-row[data-taxonomy-row="concepts"], .taxonomy-row[data-taxonomy-row="impacts"], .taxonomy-row[data-taxonomy-row="difficulties"] { background: #84B59F; }
 .taxonomy-label { border-color: #69A297; }
 .tag-button, .tag { border-color: #69A297; background: #DDD8C4; }
-.tag-topics, .tag-keywords, .tag-publications { background: #84B59F; }
-.tag-domains, .tag-concepts, .tag-impacts, .tag-difficulties { background: #A3C9A8; }
+.tag-topics, .tag-keywords, .tag-publications { background: #A3C9A8; }
+.tag-domains, .tag-concepts, .tag-impacts, .tag-difficulties { background: #84B59F; }
 .tag-button:hover { border-color: #50808E; background: #A3C9A8; }
 .tag-button.selected { border-color: #50808E; background: #69A297; box-shadow: none; }
 .tag-button.selected strong { background: #DDD8C4; }
