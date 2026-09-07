@@ -60,7 +60,11 @@ function normalizeMarkdownEmphasis(markdown) {
           return line.replace(/(?<!\\)(?<!\*)\*\*(?!\*)/g, (marker, offset) => {
             markerIndex += 1;
             const closesStrongText = markerIndex % 2 === 0;
+            const opensAfterText = !closesStrongText
+              && /[\p{L}\p{N}]$/u.test(line.slice(0, offset))
+              && /^[\p{P}\p{S}]/u.test(line.slice(offset + marker.length));
             const followedByText = /^[\p{L}\p{N}]/u.test(line.slice(offset + marker.length));
+            if (opensAfterText) return ` ${marker}`;
             return closesStrongText && followedByText ? `${marker} ` : marker;
           });
         }).join("")
@@ -118,6 +122,7 @@ function renderMermaid(root = document) {
 }
 
 function enhanceAnswerSections(root) {
+  const referenceBlock = root.querySelector(":scope > .reference-group");
   const sectionNames = new Map([
     ["summary", { className: "answer-summary", label: "SUMMARY" }],
     ["details", { className: "answer-details", label: "DETAILS" }]
@@ -125,6 +130,7 @@ function enhanceAnswerSections(root) {
   const sections = [];
   let currentSection = null;
   for (const node of [...root.childNodes]) {
+    if (node === referenceBlock) continue;
     const name = node.nodeType === Node.ELEMENT_NODE && /^H[1-6]$/.test(node.tagName)
       ? node.textContent.trim().toLocaleLowerCase()
       : null;
@@ -152,6 +158,7 @@ function enhanceAnswerSections(root) {
       const content = document.createElement("div");
       content.className = "answer-details-content";
       content.append(...nodes);
+      if (referenceBlock) content.append(referenceBlock);
       label.type = "button";
       label.classList.add("answer-details-toggle");
       label.setAttribute("aria-expanded", "false");
@@ -431,8 +438,16 @@ async function fetchWithTimeout(url, timeoutMs = 8000) {
 
 function renderResources(item) {
   const related = item.related_entries.length ? `<div class="resource-group related-group"><h3>Related Entries</h3><ul>${item.related_entries.map((relation) => `<li><div class="related-link" role="link" tabindex="0" data-url="${escapeHtml(relation.url)}"><span class="collection-badge">${escapeHtml(relation.collection)}</span><div class="related-question markdown-content">${renderMarkdown(relation.question)}</div><span aria-hidden="true">↗</span></div>${relation.comment ? `<small>${escapeHtml(relation.comment)}</small>` : ""}</li>`).join("")}</ul></div>` : "";
-  const references = item.references.length ? `<div class="resource-group reference-group"><h3>References</h3><ul>${item.references.map((reference) => `<li><a href="${escapeHtml(reference.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(reference.url)} <span aria-hidden="true">↗</span></a></li>`).join("")}</ul></div>` : "";
-  return related || references ? `<section class="qa-resources combined-resources">${related}${references}</section>` : "";
+  return related ? `<section class="qa-resources combined-resources">${related}</section>` : "";
+}
+
+function renderReferences(item) {
+  return item.references.length ? `<section class="resource-group reference-group"><h3>References</h3><ul>${item.references.map((reference) => `<li><a href="${escapeHtml(reference.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(reference.title || reference.url)} <span aria-hidden="true">↗</span></a></li>`).join("")}</ul></section>` : "";
+}
+
+function renderAnswerContent(content, markdown, item) {
+  content.innerHTML = renderMarkdown(markdown) + renderReferences(item);
+  enhanceContent(content);
 }
 
 function tagFilterUrl(key, collection) {
@@ -463,28 +478,24 @@ function cacheLocalAnswer(item) {
 async function loadAnswer(card, item) {
   const content = card.querySelector(".answer-content");
   if (answerCache.has(item.id)) {
-    content.innerHTML = renderMarkdown(answerCache.get(item.id));
-    enhanceContent(content);
+    renderAnswerContent(content, answerCache.get(item.id), item);
     return;
   }
   content.innerHTML = `<p class="answer-status">Loading answer…</p>`;
   try {
     if (answerPromises.has(item.id)) await answerPromises.get(item.id);
     if (answerCache.has(item.id)) {
-      content.innerHTML = renderMarkdown(answerCache.get(item.id));
-      enhanceContent(content);
+      renderAnswerContent(content, answerCache.get(item.id), item);
       return;
     }
     const response = await fetchWithTimeout(`${ANSWER_API_BASE}/api/entries/${encodeURIComponent(item.id)}`);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const payload = await response.json();
     answerCache.set(item.id, payload.answer_markdown);
-    content.innerHTML = renderMarkdown(payload.answer_markdown);
-    enhanceContent(content);
+    renderAnswerContent(content, payload.answer_markdown, item);
   } catch (error) {
     if (cacheLocalAnswer(item)) {
-      content.innerHTML = renderMarkdown(answerCache.get(item.id));
-      enhanceContent(content);
+      renderAnswerContent(content, answerCache.get(item.id), item);
       console.warn(`Loaded local fallback answer for ${item.id}:`, error);
       return;
     }
